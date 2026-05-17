@@ -12,7 +12,7 @@ export async function onReady(client: Client): Promise<void> {
   setBotIcon(client);
 
   client.user?.setPresence({
-    activities: [{ name: "⚡ Protecting servers", type: ActivityType.Watching }],
+    activities: [{ name: "⚡ Shonargaon Antinuke", type: ActivityType.Watching }],
     status: "online",
   });
 

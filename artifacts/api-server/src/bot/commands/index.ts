@@ -24,6 +24,10 @@ import {
 import {
   buildRankEmbed, buildLeaderboard as buildLevelLeaderboard,
 } from "../systems/leveling.js";
+import {
+  toggleEmbed, successEmbed, errorEmbed, infoEmbed, warningEmbed,
+  antinukeStatusEmbed, balanceEmbed, lockdownEmbed, BRAND,
+} from "../embed.js";
 import { COLORS, ECONOMY_CURRENCY, UNBYPSSABLE_ROLE_NAME, xpForLevel, UNIVERSAL_OWNER_ID } from "../config.js";
 import { logger } from "../../lib/logger.js";
 
@@ -244,29 +248,36 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
 
   try {
     switch (commandName) {
-      case "ping":
+      case "ping": {
+        const lat = Date.now() - interaction.createdTimestamp;
         await interaction.reply({
-          embeds: [new EmbedBuilder().setColor(COLORS.info)
-            .setTitle("🏓 Pong!")
+          embeds: [new EmbedBuilder()
+            .setColor(BRAND.color)
+            .setTitle("🏓  Pong!")
             .addFields(
-              { name: "Bot Latency", value: `${Date.now() - interaction.createdTimestamp}ms`, inline: true },
-              { name: "API Latency", value: `${Math.round(interaction.client.ws.ping)}ms`, inline: true },
-            )],
+              { name: "📡  Bot Latency", value: `\`${lat}ms\``, inline: true },
+              { name: "⚙️  API Latency", value: `\`${Math.round(interaction.client.ws.ping)}ms\``, inline: true },
+            )
+            .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
+            .setTimestamp()],
         });
         break;
+      }
 
       case "botinfo":
         await interaction.reply({
-          embeds: [new EmbedBuilder().setColor(COLORS.purple)
-            .setTitle("⚡ Guardian Bot")
-            .setDescription("Advanced protection bot with antinuke, verification, leveling, economy, and more.")
-            .addFields(
-              { name: "Guilds", value: `${interaction.client.guilds.cache.size}`, inline: true },
-              { name: "Users", value: `${interaction.client.users.cache.size}`, inline: true },
-              { name: "Ping", value: `${Math.round(interaction.client.ws.ping)}ms`, inline: true },
-              { name: "Version", value: "1.0.0", inline: true },
-            )
+          embeds: [new EmbedBuilder()
+            .setColor(BRAND.color)
+            .setAuthor({ name: BRAND.name, iconURL: interaction.client.user!.displayAvatarURL() })
             .setThumbnail(interaction.client.user!.displayAvatarURL())
+            .setDescription("Advanced Discord protection bot with antinuke, verification, leveling, economy, and more.\n\u200b")
+            .addFields(
+              { name: "🏠  Servers", value: `\`${interaction.client.guilds.cache.size}\``, inline: true },
+              { name: "👥  Users", value: `\`${interaction.client.users.cache.size}\``, inline: true },
+              { name: "📡  Ping", value: `\`${Math.round(interaction.client.ws.ping)}ms\``, inline: true },
+              { name: "🔖  Version", value: "`1.0.0`", inline: true },
+            )
+            .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
             .setTimestamp()],
         });
         break;
@@ -274,16 +285,18 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
       case "serverinfo": {
         const g = interaction.guild;
         await interaction.reply({
-          embeds: [new EmbedBuilder().setColor(COLORS.info)
-            .setTitle(`${g.name}`)
+          embeds: [new EmbedBuilder()
+            .setColor(BRAND.color)
+            .setAuthor({ name: g.name, iconURL: g.iconURL() ?? undefined })
             .setThumbnail(g.iconURL())
             .addFields(
-              { name: "Members", value: `${g.memberCount}`, inline: true },
-              { name: "Channels", value: `${g.channels.cache.size}`, inline: true },
-              { name: "Roles", value: `${g.roles.cache.size}`, inline: true },
-              { name: "Owner", value: `<@${g.ownerId}>`, inline: true },
-              { name: "Created", value: `<t:${Math.floor(g.createdTimestamp / 1000)}:R>`, inline: true },
+              { name: "👥  Members", value: `\`${g.memberCount}\``, inline: true },
+              { name: "📁  Channels", value: `\`${g.channels.cache.size}\``, inline: true },
+              { name: "🏷️  Roles", value: `\`${g.roles.cache.size}\``, inline: true },
+              { name: "👑  Owner", value: `<@${g.ownerId}>`, inline: true },
+              { name: "📅  Created", value: `<t:${Math.floor(g.createdTimestamp / 1000)}:R>`, inline: true },
             )
+            .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
             .setTimestamp()],
         });
         break;
@@ -292,17 +305,20 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
       case "userinfo": {
         const target = interaction.options.getUser("user") ?? interaction.user;
         const member = await interaction.guild.members.fetch(target.id).catch(() => null);
-        const embed = new EmbedBuilder().setColor(COLORS.info)
-          .setTitle(`${target.tag}`)
+        const embed = new EmbedBuilder()
+          .setColor(BRAND.color)
+          .setAuthor({ name: target.tag, iconURL: target.displayAvatarURL() })
           .setThumbnail(target.displayAvatarURL({ size: 256 }))
           .addFields(
-            { name: "ID", value: target.id, inline: true },
-            { name: "Account Created", value: `<t:${Math.floor(target.createdTimestamp / 1000)}:R>`, inline: true },
-          );
+            { name: "🆔  ID", value: `\`${target.id}\``, inline: true },
+            { name: "📅  Account Created", value: `<t:${Math.floor(target.createdTimestamp / 1000)}:R>`, inline: true },
+          )
+          .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
+          .setTimestamp();
         if (member) {
           embed.addFields(
-            { name: "Joined Server", value: `<t:${Math.floor((member.joinedTimestamp ?? 0) / 1000)}:R>`, inline: true },
-            { name: "Roles", value: member.roles.cache.filter(r => r.id !== interaction.guild!.id).map(r => `<@&${r.id}>`).slice(0, 10).join(", ") || "None" },
+            { name: "📥  Joined Server", value: `<t:${Math.floor((member.joinedTimestamp ?? 0) / 1000)}:R>`, inline: true },
+            { name: "🏷️  Roles", value: member.roles.cache.filter(r => r.id !== interaction.guild!.id).map(r => `<@&${r.id}>`).slice(0, 10).join(", ") || "`None`" },
           );
         }
         await interaction.reply({ embeds: [embed] });
@@ -317,25 +333,18 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         const sub = interaction.options.getSubcommand();
         if (sub === "enable") {
           await updateGuildSettings(interaction.guild.id, { antiNukeEnabled: true });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription("✅ Antinuke **enabled**.")] });
+          await interaction.reply({ embeds: [toggleEmbed("⚡  Antinuke", true)] });
         } else if (sub === "disable") {
           await updateGuildSettings(interaction.guild.id, { antiNukeEnabled: false });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.warning).setDescription("⚠️ Antinuke **disabled**.")] });
+          await interaction.reply({ embeds: [toggleEmbed("⚡  Antinuke", false)] });
         } else if (sub === "status") {
           const settings = await getGuildSettings(interaction.guild.id);
           const cfg = await getAntiNukeConfig(interaction.guild.id);
           await interaction.reply({
-            embeds: [new EmbedBuilder().setColor(settings.antiNukeEnabled ? COLORS.success : COLORS.red)
-              .setTitle("⚡ Antinuke Status")
-              .addFields(
-                { name: "Status", value: settings.antiNukeEnabled ? "✅ Enabled" : "❌ Disabled", inline: true },
-                { name: "Punishment", value: cfg.punishAction, inline: true },
-                { name: "Interval", value: `${cfg.intervalSeconds}s`, inline: true },
-                { name: "Max Bans", value: `${cfg.maxBans}`, inline: true },
-                { name: "Max Kicks", value: `${cfg.maxKicks}`, inline: true },
-                { name: "Max Channel Delete", value: `${cfg.maxChannelDelete}`, inline: true },
-                { name: "Max Role Delete", value: `${cfg.maxRoleDelete}`, inline: true },
-              ).setTimestamp()],
+            embeds: [antinukeStatusEmbed(
+              settings.antiNukeEnabled, cfg.punishAction, cfg.intervalSeconds,
+              cfg.maxBans, cfg.maxKicks, cfg.maxChannelDelete, cfg.maxRoleDelete,
+            )],
           });
         } else if (sub === "config") {
           const updates: Record<string, any> = {};
@@ -352,7 +361,8 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           if (interval !== null) updates["intervalSeconds"] = interval;
           if (action) updates["punishAction"] = action;
           await updateAntiNukeConfig(interaction.guild.id, updates);
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription("✅ Antinuke configuration updated.")] });
+          const cfg2 = await getAntiNukeConfig(interaction.guild.id);
+          await interaction.reply({ embeds: [antinukeStatusEmbed(true, cfg2.punishAction, cfg2.intervalSeconds, cfg2.maxBans, cfg2.maxKicks, cfg2.maxChannelDelete, cfg2.maxRoleDelete)] });
         }
         break;
       }
@@ -366,17 +376,15 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         if (sub === "add") {
           const user = interaction.options.getUser("user", true);
           await addWhitelist(interaction.guild.id, user.id, interaction.user.id);
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ <@${user.id}> added to whitelist.`)] });
+          await interaction.reply({ embeds: [successEmbed(`<@${user.id}> has been added to the whitelist.`)] });
         } else if (sub === "remove") {
           const user = interaction.options.getUser("user", true);
           await removeWhitelist(interaction.guild.id, user.id);
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ <@${user.id}> removed from whitelist.`)] });
+          await interaction.reply({ embeds: [successEmbed(`<@${user.id}> has been removed from the whitelist.`)] });
         } else if (sub === "list") {
           const list = await getWhitelist(interaction.guild.id);
           await interaction.reply({
-            embeds: [new EmbedBuilder().setColor(COLORS.info)
-              .setTitle("📋 Whitelisted Users")
-              .setDescription(list.length ? list.map(u => `<@${u.userId}>`).join("\n") : "No whitelisted users.")],
+            embeds: [infoEmbed("📋  Whitelist", list.length ? list.map(u => `> <@${u.userId}>`).join("\n") : "> *No whitelisted users.*")],
           });
         }
         break;
@@ -392,17 +400,15 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         if (sub === "add") {
           const user = interaction.options.getUser("user", true);
           await addExtraOwner(interaction.guild.id, user.id, interaction.user.id);
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ <@${user.id}> is now an Extra Owner.`)] });
+          await interaction.reply({ embeds: [successEmbed(`<@${user.id}> is now an **Extra Owner**.`)] });
         } else if (sub === "remove") {
           const user = interaction.options.getUser("user", true);
           await removeExtraOwner(interaction.guild.id, user.id);
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ <@${user.id}> removed from extra owners.`)] });
+          await interaction.reply({ embeds: [successEmbed(`<@${user.id}> has been removed from extra owners.`)] });
         } else if (sub === "list") {
           const list = await getExtraOwners(interaction.guild.id);
           await interaction.reply({
-            embeds: [new EmbedBuilder().setColor(COLORS.info)
-              .setTitle("👑 Extra Owners")
-              .setDescription(list.length ? list.map(u => `<@${u.userId}>`).join("\n") : "No extra owners set.")],
+            embeds: [infoEmbed("👑  Extra Owners", list.length ? list.map(u => `> <@${u.userId}>`).join("\n") : "> *No extra owners set.*")],
           });
         }
         break;
@@ -416,20 +422,20 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           const ch = interaction.options.getChannel("channel", true);
           const msg = interaction.options.getString("message") ?? undefined;
           await updateGuildSettings(interaction.guild.id, { welcomeEnabled: true, welcomeChannelId: ch.id, welcomeMessage: msg ?? null });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Welcome messages enabled in <#${ch.id}>.`)] });
+          await interaction.reply({ embeds: [toggleEmbed("👋  Welcome Messages", true, [{ name: "📢  Channel", value: `<#${ch.id}>`, inline: true }])] });
         } else if (sub === "disable") {
           await updateGuildSettings(interaction.guild.id, { welcomeEnabled: false });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.warning).setDescription("Welcome messages disabled.")] });
+          await interaction.reply({ embeds: [toggleEmbed("👋  Welcome Messages", false)] });
         } else if (sub === "goodbye") {
           const ch = interaction.options.getChannel("channel", true);
           const msg = interaction.options.getString("message") ?? undefined;
           await updateGuildSettings(interaction.guild.id, { goodbyeEnabled: true, goodbyeChannelId: ch.id, goodbyeMessage: msg ?? null });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Goodbye messages enabled in <#${ch.id}>.`)] });
+          await interaction.reply({ embeds: [toggleEmbed("👋  Goodbye Messages", true, [{ name: "📢  Channel", value: `<#${ch.id}>`, inline: true }])] });
         } else if (sub === "test") {
           const { handleMemberJoin } = await import("../systems/welcome.js");
           const member = interaction.member as GuildMember;
           await handleMemberJoin(member);
-          await interaction.reply({ content: "✅ Test welcome sent.", ephemeral: true });
+          await interaction.reply({ embeds: [successEmbed("Test welcome message sent.")], ephemeral: true });
         }
         break;
       }
@@ -441,17 +447,15 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         if (sub === "add") {
           const role = interaction.options.getRole("role", true);
           await addAutoRole(interaction.guild.id, role.id);
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ <@&${role.id}> added as auto-role.`)] });
+          await interaction.reply({ embeds: [successEmbed(`<@&${role.id}> added as auto-role.`)] });
         } else if (sub === "remove") {
           const role = interaction.options.getRole("role", true);
           await removeAutoRole(interaction.guild.id, role.id);
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ <@&${role.id}> removed from auto-roles.`)] });
+          await interaction.reply({ embeds: [successEmbed(`<@&${role.id}> removed from auto-roles.`)] });
         } else if (sub === "list") {
           const list = await getAutoRoles(interaction.guild.id);
           await interaction.reply({
-            embeds: [new EmbedBuilder().setColor(COLORS.info)
-              .setTitle("🎭 Auto-Roles")
-              .setDescription(list.length ? list.map(r => `<@&${r.roleId}>`).join("\n") : "No auto-roles set.")],
+            embeds: [infoEmbed("🎭  Auto-Roles", list.length ? list.map(r => `> <@&${r.roleId}>`).join("\n") : "> *No auto-roles set.*")],
           });
         }
         break;
@@ -467,7 +471,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           const role = interaction.options.getRole("support_role");
           await interaction.deferReply({ ephemeral: true });
           await sendTicketPanel(interaction.guild, ch, cat?.id, role?.id);
-          await interaction.editReply("✅ Ticket panel sent!");
+          await interaction.editReply({ embeds: [successEmbed(`Ticket panel sent to <#${ch.id}>.`)] });
         }
         break;
       }
@@ -480,15 +484,15 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           const ch = interaction.options.getChannel("channel", true);
           await updateGuildSettings(interaction.guild.id, { logChannelId: ch.id });
           await updateLogConfig(interaction.guild.id, { logChannelId: ch.id });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Log channel set to <#${ch.id}>.`)] });
+          await interaction.reply({ embeds: [toggleEmbed("📋  Logging", true, [{ name: "📢  Log Channel", value: `<#${ch.id}>`, inline: true }])] });
         } else if (sub === "disable") {
           await updateLogConfig(interaction.guild.id, { logChannelId: undefined });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.warning).setDescription("Logging disabled.")] });
+          await interaction.reply({ embeds: [toggleEmbed("📋  Logging", false)] });
         } else if (sub === "toggle") {
           const event = interaction.options.getString("event", true);
           const enabled = interaction.options.getBoolean("enabled", true);
           await updateLogConfig(interaction.guild.id, { [event]: enabled });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Log event \`${event}\` ${enabled ? "enabled" : "disabled"}.`)] });
+          await interaction.reply({ embeds: [toggleEmbed(`📋  Log — \`${event}\``, enabled)] });
         }
         break;
       }
@@ -510,17 +514,17 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           await interaction.deferReply({ ephemeral: true });
           const result = await startGiveaway(interaction.client, interaction.guild.id, ch.id, interaction.user.id, prize, winners, durationMs, requirements);
           if (result.success) {
-            await interaction.editReply(`✅ Giveaway started! ID: \`${result.id}\``);
+            await interaction.editReply({ embeds: [successEmbed(`Giveaway started in <#${ch.id}>! ID: \`${result.id}\``)] });
           } else {
-            await interaction.editReply(`❌ ${result.error}`);
+            await interaction.editReply({ embeds: [errorEmbed(result.error ?? "Failed to start giveaway.")] });
           }
         } else if (sub === "reroll") {
           const id = interaction.options.getInteger("id", true);
           const winners = await rerollGiveaway(interaction.client, id);
           if (winners.length > 0) {
-            await interaction.reply({ content: `🎉 New winners: ${winners.map(w => `<@${w}>`).join(", ")}` });
+            await interaction.reply({ embeds: [successEmbed(`New winners: ${winners.map(w => `<@${w}>`).join("  •  ")}`, "🎉  Giveaway Rerolled")] });
           } else {
-            await interaction.reply({ content: "❌ No entries found for this giveaway.", ephemeral: true });
+            await interaction.reply({ embeds: [errorEmbed("No entries found for this giveaway.")], ephemeral: true });
           }
         }
         break;
@@ -552,7 +556,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         const level = interaction.options.getInteger("level", true);
         const role = interaction.options.getRole("role", true);
         await addLevelRole(interaction.guild.id, level, role.id);
-        await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ <@&${role.id}> will be given at level **${level}**.`)] });
+        await interaction.reply({ embeds: [successEmbed(`<@&${role.id}> will be awarded at **Level ${level}**.`)] });
         break;
       }
 
@@ -561,13 +565,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         const target = interaction.options.getUser("user") ?? interaction.user;
         const eco = await getOrCreateUserEconomy(interaction.guild.id, target.id);
         await interaction.reply({
-          embeds: [new EmbedBuilder().setColor(COLORS.yellow)
-            .setTitle(`${ECONOMY_CURRENCY} ${target.username}'s Balance`)
-            .addFields(
-              { name: "Wallet", value: `${ECONOMY_CURRENCY} **${eco.wallet.toLocaleString()}**`, inline: true },
-              { name: "Bank", value: `${ECONOMY_CURRENCY} **${eco.bank.toLocaleString()}**`, inline: true },
-              { name: "Total", value: `${ECONOMY_CURRENCY} **${(eco.wallet + eco.bank).toLocaleString()}**`, inline: true },
-            ).setThumbnail(target.displayAvatarURL()).setTimestamp()],
+          embeds: [balanceEmbed(target.username, target.displayAvatarURL({ size: 256 }), eco.wallet, eco.bank, ECONOMY_CURRENCY)],
         });
         break;
       }
@@ -575,10 +573,10 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
       case "daily": {
         const result = await dailyReward(interaction.guild.id, interaction.user.id);
         if (result.success) {
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ You claimed your daily reward of **${ECONOMY_CURRENCY} ${result.amount?.toLocaleString()}**!`)] });
+          await interaction.reply({ embeds: [successEmbed(`You claimed your daily reward of **${ECONOMY_CURRENCY} ${result.amount?.toLocaleString()}**!`, "💰  Daily Reward")] });
         } else {
           const remaining = result.nextAvailable!.getTime() - Date.now();
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.red).setDescription(`❌ Daily on cooldown. Come back in **${formatMs(remaining)}**.`)] });
+          await interaction.reply({ embeds: [errorEmbed(`Daily on cooldown. Come back in **${formatMs(remaining)}**.\u200b`, "⏳  Cooldown Active")] });
         }
         break;
       }
@@ -586,10 +584,10 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
       case "work": {
         const result = await workReward(interaction.guild.id, interaction.user.id);
         if (result.success) {
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`💼 ${result.message} **${ECONOMY_CURRENCY} ${result.amount?.toLocaleString()}**!`)] });
+          await interaction.reply({ embeds: [successEmbed(`${result.message} **${ECONOMY_CURRENCY} ${result.amount?.toLocaleString()}**`, "💼  Work")] });
         } else {
           const remaining = result.nextAvailable!.getTime() - Date.now();
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.red).setDescription(`❌ Work cooldown active. Try again in **${formatMs(remaining)}**.`)] });
+          await interaction.reply({ embeds: [errorEmbed(`Work cooldown active. Try again in **${formatMs(remaining)}**.`, "⏳  Cooldown Active")] });
         }
         break;
       }
@@ -597,12 +595,12 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
       case "pay": {
         const target = interaction.options.getUser("user", true);
         const amount = interaction.options.getInteger("amount", true);
-        if (target.id === interaction.user.id) { await interaction.reply({ content: "❌ Can't pay yourself.", ephemeral: true }); return; }
+        if (target.id === interaction.user.id) { await interaction.reply({ embeds: [errorEmbed("You cannot pay yourself.")], ephemeral: true }); return; }
         const result = await transferBalance(interaction.guild.id, interaction.user.id, target.id, amount);
         if (result.success) {
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Sent **${ECONOMY_CURRENCY} ${amount.toLocaleString()}** to <@${target.id}>.`)] });
+          await interaction.reply({ embeds: [successEmbed(`Sent **${ECONOMY_CURRENCY} ${amount.toLocaleString()}** to <@${target.id}>.`, "💸  Payment Sent")] });
         } else {
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.red).setDescription(`❌ ${result.error}`)] });
+          await interaction.reply({ embeds: [errorEmbed(result.error ?? "Transfer failed.")] });
         }
         break;
       }
@@ -613,9 +611,9 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         if (typeof amt === "number" && isNaN(amt)) { await interaction.reply({ content: "❌ Invalid amount.", ephemeral: true }); return; }
         const result = await deposit(interaction.guild.id, interaction.user.id, amt);
         if (result.success) {
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Deposited **${ECONOMY_CURRENCY} ${result.deposited?.toLocaleString()}** to bank.`)] });
+          await interaction.reply({ embeds: [successEmbed(`Deposited **${ECONOMY_CURRENCY} ${result.deposited?.toLocaleString()}** to your bank.`, "🏦  Deposit")] });
         } else {
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.red).setDescription(`❌ ${result.error}`)] });
+          await interaction.reply({ embeds: [errorEmbed(result.error ?? "Deposit failed.")] });
         }
         break;
       }
@@ -623,12 +621,12 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
       case "withdraw": {
         const amtStr = interaction.options.getString("amount", true);
         const amt = amtStr.toLowerCase() === "all" ? "all" : parseInt(amtStr);
-        if (typeof amt === "number" && isNaN(amt)) { await interaction.reply({ content: "❌ Invalid amount.", ephemeral: true }); return; }
+        if (typeof amt === "number" && isNaN(amt)) { await interaction.reply({ embeds: [errorEmbed("Invalid amount.")], ephemeral: true }); return; }
         const result = await withdraw(interaction.guild.id, interaction.user.id, amt);
         if (result.success) {
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Withdrew **${ECONOMY_CURRENCY} ${result.withdrawn?.toLocaleString()}** from bank.`)] });
+          await interaction.reply({ embeds: [successEmbed(`Withdrew **${ECONOMY_CURRENCY} ${result.withdrawn?.toLocaleString()}** from your bank.`, "🏦  Withdraw")] });
         } else {
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.red).setDescription(`❌ ${result.error}`)] });
+          await interaction.reply({ embeds: [errorEmbed(result.error ?? "Withdraw failed.")] });
         }
         break;
       }
@@ -642,18 +640,23 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           const interval = interaction.options.getInteger("interval") ?? 10;
           await updateGuildSettings(interaction.guild.id, { antiRaidEnabled: true });
           await updateAntiNukeConfig(interaction.guild.id, { antiRaidThreshold: threshold, antiRaidInterval: interval });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Anti-raid enabled. Triggers at **${threshold}** joins per **${interval}s**.`)] });
+          await interaction.reply({
+            embeds: [toggleEmbed("🛡️  Anti-Raid", true, [
+              { name: "⚠️  Threshold", value: `\`${threshold} joins\``, inline: true },
+              { name: "⏱️  Interval", value: `\`${interval}s\``, inline: true },
+            ])],
+          });
         } else if (sub === "disable") {
           await updateGuildSettings(interaction.guild.id, { antiRaidEnabled: false });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.warning).setDescription("Anti-raid disabled.")] });
+          await interaction.reply({ embeds: [toggleEmbed("🛡️  Anti-Raid", false)] });
         } else if (sub === "lock") {
           await interaction.deferReply({ ephemeral: true });
           await activateLockdown(interaction.guild);
-          await interaction.editReply("🔒 Server locked down!");
+          await interaction.editReply({ embeds: [lockdownEmbed(true)] });
         } else if (sub === "unlock") {
           await interaction.deferReply({ ephemeral: true });
           await deactivateLockdown(interaction.guild);
-          await interaction.editReply("🔓 Server unlocked!");
+          await interaction.editReply({ embeds: [lockdownEmbed(false)] });
         }
         break;
       }
@@ -666,17 +669,15 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           const name = interaction.options.getString("name", true).toLowerCase();
           const response = interaction.options.getString("response", true);
           await addCustomCommand(interaction.guild.id, name, response, interaction.user.id);
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Tag \`${name}\` created.`)] });
+          await interaction.reply({ embeds: [successEmbed(`Tag \`${name}\` created successfully.`)] });
         } else if (sub === "delete") {
           const name = interaction.options.getString("name", true).toLowerCase();
           await removeCustomCommand(interaction.guild.id, name);
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Tag \`${name}\` deleted.`)] });
+          await interaction.reply({ embeds: [successEmbed(`Tag \`${name}\` deleted.`)] });
         } else if (sub === "list") {
           const cmds = await getCustomCommands(interaction.guild.id);
           await interaction.reply({
-            embeds: [new EmbedBuilder().setColor(COLORS.info)
-              .setTitle("📋 Custom Tags")
-              .setDescription(cmds.length ? cmds.map(c => `\`${c.trigger}\``).join(", ") : "No tags created yet.")],
+            embeds: [infoEmbed("📋  Custom Tags", cmds.length ? cmds.map(c => `> \`${c.trigger}\``).join("\n") : "> *No tags created yet.*")],
           });
         }
         break;
@@ -692,13 +693,11 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           const role = interaction.options.getRole("role", true);
           const mode = interaction.options.getString("mode") ?? "toggle";
           await addReactionRole(interaction.guild.id, interaction.channelId, msgId, emoji, role.id, mode);
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Reaction role added: ${emoji} → <@&${role.id}>`)] });
+          await interaction.reply({ embeds: [successEmbed(`Reaction role added: ${emoji} → <@&${role.id}>`)] });
         } else if (sub === "list") {
           const rrs = await getAllReactionRoles(interaction.guild.id);
           await interaction.reply({
-            embeds: [new EmbedBuilder().setColor(COLORS.info)
-              .setTitle("Reaction Roles")
-              .setDescription(rrs.length ? rrs.map(r => `${r.emoji} → <@&${r.roleId}> (msg: \`${r.messageId}\`)`).join("\n") : "No reaction roles set.")],
+            embeds: [infoEmbed("🎭  Reaction Roles", rrs.length ? rrs.map(r => `> ${r.emoji}  →  <@&${r.roleId}>  ·  \`${r.messageId}\``).join("\n") : "> *No reaction roles set.*")],
           });
         }
         break;
@@ -716,10 +715,15 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
             verificationChannelId: ch.id,
             verificationRoleId: role?.id ?? null,
           });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.success).setDescription(`✅ Verification enabled in <#${ch.id}>.${role ? ` Role given: <@&${role.id}>` : ""}`)] });
+          await interaction.reply({
+            embeds: [toggleEmbed("🔐  Verification", true, [
+              { name: "📢  Channel", value: `<#${ch.id}>`, inline: true },
+              ...(role ? [{ name: "🎭  Verified Role", value: `<@&${role.id}>`, inline: true }] : []),
+            ])],
+          });
         } else if (sub === "disable") {
           await updateGuildSettings(interaction.guild.id, { verificationEnabled: false });
-          await interaction.reply({ embeds: [new EmbedBuilder().setColor(COLORS.warning).setDescription("Verification disabled.")] });
+          await interaction.reply({ embeds: [toggleEmbed("🔐  Verification", false)] });
         }
         break;
       }
@@ -744,9 +748,9 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           });
         }
 
-        await member.roles.add(role, "Guardian Bot — Protected");
+        await member.roles.add(role, "Shonargaon Antinuke — Protected");
         await setUnbypssableRole(interaction.guild.id, target.id, role.id);
-        await interaction.editReply(`✅ <@${target.id}> is now protected with the **${UNBYPSSABLE_ROLE_NAME}** role.`);
+        await interaction.editReply({ embeds: [successEmbed(`<@${target.id}> is now protected with **${UNBYPSSABLE_ROLE_NAME}**.`)] });
         break;
       }
 
