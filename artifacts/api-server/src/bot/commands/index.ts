@@ -347,7 +347,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
             )],
           });
         } else if (sub === "config") {
-          const updates: Record<string, any> = {};
+          const updates: Record<string, unknown> = {};
           const maxBans = interaction.options.getInteger("max_bans");
           const maxKicks = interaction.options.getInteger("max_kicks");
           const maxChDel = interaction.options.getInteger("max_channel_delete");
@@ -360,9 +360,12 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           if (maxRoleDel !== null) updates["maxRoleDelete"] = maxRoleDel;
           if (interval !== null) updates["intervalSeconds"] = interval;
           if (action) updates["punishAction"] = action;
-          await updateAntiNukeConfig(interaction.guild.id, updates);
+          if (Object.keys(updates).length > 0) {
+            await updateAntiNukeConfig(interaction.guild.id, updates);
+          }
+          const settings2 = await getGuildSettings(interaction.guild.id);
           const cfg2 = await getAntiNukeConfig(interaction.guild.id);
-          await interaction.reply({ embeds: [antinukeStatusEmbed(true, cfg2.punishAction, cfg2.intervalSeconds, cfg2.maxBans, cfg2.maxKicks, cfg2.maxChannelDelete, cfg2.maxRoleDelete)] });
+          await interaction.reply({ embeds: [antinukeStatusEmbed(settings2.antiNukeEnabled, cfg2.punishAction, cfg2.intervalSeconds, cfg2.maxBans, cfg2.maxKicks, cfg2.maxChannelDelete, cfg2.maxRoleDelete)] });
         }
         break;
       }
