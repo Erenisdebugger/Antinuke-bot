@@ -1,6 +1,7 @@
 import { Guild, GuildMember, TextChannel, EmbedBuilder, ChannelType, PermissionFlagsBits } from "discord.js";
 import { getAntiNukeConfig, getGuildSettings, updateGuildSettings } from "../database.js";
 import { COLORS } from "../config.js";
+import { lockdownEmbed } from "../embed.js";
 import { logger } from "../../lib/logger.js";
 
 const joinTracker = new Map<string, number[]>();
@@ -48,13 +49,7 @@ export async function activateLockdown(guild: Guild): Promise<void> {
     if (settings.logChannelId) {
       const logCh = guild.channels.cache.get(settings.logChannelId) as TextChannel | undefined;
       if (logCh) {
-        await logCh.send({
-          embeds: [new EmbedBuilder()
-            .setColor(COLORS.red)
-            .setTitle("🔒 ANTI-RAID LOCKDOWN ACTIVATED")
-            .setDescription("Mass join detected! All text channels have been locked.\nUse `/antiraid unlock` to unlock.")
-            .setTimestamp()],
-        });
+        await logCh.send({ embeds: [lockdownEmbed(true)] });
       }
     }
   } catch (err) {

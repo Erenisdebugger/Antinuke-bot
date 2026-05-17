@@ -3,10 +3,13 @@ import { registerCommands } from "../commands/index.js";
 import { captureSnapshot } from "../systems/recovery.js";
 import { resumeGiveaways } from "../systems/giveaway.js";
 import { ensureGuild } from "../database.js";
+import { setBotIcon } from "../embed.js";
 import { logger } from "../../lib/logger.js";
 
 export async function onReady(client: Client): Promise<void> {
   logger.info({ tag: client.user?.tag, guilds: client.guilds.cache.size }, "Bot is ready");
+
+  setBotIcon(client);
 
   client.user?.setPresence({
     activities: [{ name: "⚡ Protecting servers", type: ActivityType.Watching }],

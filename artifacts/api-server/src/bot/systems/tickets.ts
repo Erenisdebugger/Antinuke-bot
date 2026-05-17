@@ -8,16 +8,18 @@ import {
   getNextTicketNumber, createTicket, getTicketByChannel, updateTicket,
 } from "../database.js";
 import { COLORS } from "../config.js";
+import { ticketEmbed, successEmbed, errorEmbed } from "../embed.js";
 import { logger } from "../../lib/logger.js";
 
 export async function sendTicketPanel(guild: Guild, channel: TextChannel, categoryId?: string, supportRoleId?: string): Promise<void> {
   const existing = await getTicketPanel(guild.id);
 
   const embed = new EmbedBuilder()
-    .setColor(COLORS.blue)
+    .setColor(0x5865f2)
     .setTitle("🎫 Support Tickets")
-    .setDescription("Need help? Click the button below to open a support ticket.\nOur team will assist you as soon as possible.")
-    .setFooter({ text: guild.name })
+    .setDescription("Need help? Click the button below to open a support ticket.\nOur support team will assist you as soon as possible.")
+    .addFields({ name: "📋 How it works", value: "1. Click **Open Ticket** below\n2. Describe your issue\n3. Wait for staff response" })
+    .setFooter({ text: `${guild.name} • Guardian Tickets` })
     .setTimestamp();
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -110,12 +112,7 @@ export async function handleTicketCreate(interaction: ButtonInteraction): Promis
     status: "open",
   });
 
-  const embed = new EmbedBuilder()
-    .setColor(COLORS.blue)
-    .setTitle(`🎫 Ticket #${ticketNum}`)
-    .setDescription(`Hello <@${interaction.user.id}>! A staff member will assist you shortly.\n\nPlease describe your issue below.`)
-    .addFields({ name: "Opened by", value: `<@${interaction.user.id}>`, inline: true })
-    .setTimestamp();
+  const embed = ticketEmbed(ticketNum, interaction.user.id);
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder().setCustomId("ticket:close").setLabel("Close Ticket").setStyle(ButtonStyle.Danger).setEmoji("🔒"),
@@ -140,11 +137,7 @@ export async function handleTicketClose(interaction: ButtonInteraction): Promise
     return;
   }
 
-  await interaction.reply({
-    embeds: [new EmbedBuilder()
-      .setColor(COLORS.red)
-      .setDescription("🔒 Ticket closing in 5 seconds...")],
-  });
+  await interaction.reply({ embeds: [new EmbedBuilder().setColor(0xed4245).setDescription("🔒 This ticket will be deleted in **5 seconds**...").setFooter({ text: "Guardian Tickets" }).setTimestamp()] });
 
   await updateTicket(interaction.channel.id, { status: "closed", closedAt: new Date() });
 

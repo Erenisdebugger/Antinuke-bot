@@ -6,6 +6,7 @@ import {
   COLORS, ECONOMY_CURRENCY, ECONOMY_DAILY_AMOUNT, ECONOMY_WORK_MIN,
   ECONOMY_WORK_MAX, ECONOMY_WORK_COOLDOWN_HOURS, ECONOMY_DAILY_COOLDOWN_HOURS,
 } from "../config.js";
+import { BRAND } from "../embed.js";
 
 const WORK_RESPONSES = [
   "You worked as a programmer and earned",
@@ -107,14 +108,16 @@ export async function withdraw(guildId: string, userId: string, amount: number |
 
 export async function buildLeaderboard(guildId: string, guildName: string): Promise<EmbedBuilder> {
   const top = await getTopEconomy(guildId, 10);
+  const medals = ["🥇", "🥈", "🥉"];
   const desc = top.length === 0
-    ? "No data yet."
-    : top.map((u, i) => `**${i + 1}.** <@${u.userId}> — ${ECONOMY_CURRENCY} **${(u.wallet + u.bank).toLocaleString()}**`).join("\n");
+    ? "No data yet. Use `/daily` and `/work` to earn coins!"
+    : top.map((u, i) => `${medals[i] ?? `**${i + 1}.**`} <@${u.userId}> — ${ECONOMY_CURRENCY} **${(u.wallet + u.bank).toLocaleString()}**`).join("\n");
 
   return new EmbedBuilder()
-    .setColor(COLORS.yellow)
-    .setTitle(`${ECONOMY_CURRENCY} ${guildName} Economy Leaderboard`)
+    .setColor(0xf1c40f)
+    .setTitle(`${ECONOMY_CURRENCY} ${guildName} — Economy Leaderboard`)
     .setDescription(desc)
+    .setFooter({ text: `${BRAND.name} Economy`, iconURL: BRAND.icon ?? undefined })
     .setTimestamp();
 }
 

@@ -2,6 +2,7 @@ import { Message, EmbedBuilder, TextChannel, GuildMember } from "discord.js";
 import { getOrCreateUserLevel, updateUserLevel, getTopLevels, getLevelRoles } from "../database.js";
 import { getGuildSettings } from "../database.js";
 import { COLORS, XP_PER_MESSAGE, XP_COOLDOWN_SECONDS, xpForLevel, levelFromXp } from "../config.js";
+import { levelUpEmbed, rankEmbed, BRAND } from "../embed.js";
 import { logger } from "../../lib/logger.js";
 
 export async function handleMessageXP(message: Message): Promise<void> {
@@ -44,12 +45,7 @@ export async function handleMessageXP(message: Message): Promise<void> {
     const targetChannel = levelUpChannel ?? (message.channel as TextChannel);
 
     await targetChannel.send({
-      embeds: [new EmbedBuilder()
-        .setColor(COLORS.purple)
-        .setTitle("⬆️ Level Up!")
-        .setDescription(`🎉 <@${message.author.id}> reached **Level ${currentLevel}**!`)
-        .setThumbnail(message.author.displayAvatarURL())
-        .setTimestamp()],
+      embeds: [levelUpEmbed(message.author.id, currentLevel, message.author.displayAvatarURL())],
     }).catch(() => {});
 
     // Assign level roles
@@ -73,31 +69,20 @@ export async function handleMessageXP(message: Message): Promise<void> {
 }
 
 export function buildRankEmbed(member: GuildMember, level: number, xp: number, totalXp: number, nextLevelXp: number): EmbedBuilder {
-  const progress = Math.floor((xp / nextLevelXp) * 20);
-  const bar = "█".repeat(progress) + "░".repeat(20 - progress);
-
-  return new EmbedBuilder()
-    .setColor(COLORS.purple)
-    .setTitle(`📊 ${member.user.username}'s Rank`)
-    .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
-    .addFields(
-      { name: "Level", value: `**${level}**`, inline: true },
-      { name: "XP", value: `**${xp}** / **${nextLevelXp}**`, inline: true },
-      { name: "Total XP", value: `**${totalXp}**`, inline: true },
-      { name: "Progress", value: `\`[${bar}]\` ${Math.floor((xp / nextLevelXp) * 100)}%` },
-    )
-    .setTimestamp();
+  return rankEmbed(member.user.username, member.user.displayAvatarURL({ size: 256 }), level, xp, totalXp, nextLevelXp);
 }
 
 export async function buildLeaderboard(guildId: string, guildName: string): Promise<EmbedBuilder> {
   const top = await getTopLevels(guildId, 10);
+  const medals = ["🥇", "🥈", "🥉"];
   const desc = top.length === 0
-    ? "No data yet."
-    : top.map((u, i) => `**${i + 1}.** <@${u.userId}> — Level **${u.level}** (${u.totalXp} XP)`).join("\n");
+    ? "No data yet. Start chatting to earn XP!"
+    : top.map((u, i) => `${medals[i] ?? `**${i + 1}.**`} <@${u.userId}> — Level **${u.level}** • \`${u.totalXp.toLocaleString()} XP\``).join("\n");
 
   return new EmbedBuilder()
-    .setColor(COLORS.purple)
-    .setTitle(`🏆 ${guildName} Level Leaderboard`)
+    .setColor(0x9b59b6)
+    .setTitle(`🏆 ${guildName} — Level Leaderboard`)
     .setDescription(desc)
+    .setFooter({ text: `${BRAND.name} Leveling`, iconURL: BRAND.icon ?? undefined })
     .setTimestamp();
 }

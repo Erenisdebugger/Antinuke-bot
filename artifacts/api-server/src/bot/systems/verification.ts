@@ -1,6 +1,7 @@
 import { Guild, GuildMember, TextChannel, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, Interaction, ButtonInteraction, ModalSubmitInteraction } from "discord.js";
 import { getGuildSettings, setPendingVerification, getPendingVerification, deletePendingVerification, incrementVerificationAttempt } from "../database.js";
 import { COLORS } from "../config.js";
+import { verifyEmbed, successEmbed, errorEmbed } from "../embed.js";
 import { logger } from "../../lib/logger.js";
 
 function generateCode(): string {
@@ -33,19 +34,7 @@ export async function sendVerificationChallenge(member: GuildMember): Promise<vo
       : null;
 
     const displayCode = obfuscateCode(code);
-
-    const embed = new EmbedBuilder()
-      .setColor(COLORS.blue)
-      .setTitle("🔒 Human Verification Required")
-      .setDescription(
-        `Welcome to **${member.guild.name}**!\n\n` +
-        `To gain access, type the code below:\n\n` +
-        `\`\`\`${displayCode}\`\`\`\n` +
-        `⚠️ You have **5 minutes** and **3 attempts** to verify.\n` +
-        `Do **NOT** copy-paste — type the code manually.`
-      )
-      .setFooter({ text: "Verification • Powered by Guardian" })
-      .setTimestamp();
+    const embed = verifyEmbed(member.guild.name, displayCode);
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -141,11 +130,7 @@ export async function handleVerifyModal(interaction: ModalSubmitInteraction): Pr
   }
 
   await interaction.reply({
-    embeds: [new EmbedBuilder()
-      .setColor(COLORS.success)
-      .setTitle("✅ Verified!")
-      .setDescription(`Welcome to **${interaction.guild.name}**! You now have full access.`)
-      .setTimestamp()],
+    embeds: [successEmbed(`Welcome to **${interaction.guild.name}**! You now have full access.`, "✅ Verified!")],
     ephemeral: true,
   });
 }

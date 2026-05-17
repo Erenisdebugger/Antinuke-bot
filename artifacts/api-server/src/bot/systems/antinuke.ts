@@ -5,6 +5,7 @@ import {
 } from "discord.js";
 import { getAntiNukeConfig, isWhitelisted, isExtraOwner, getGuildSettings } from "../database.js";
 import { COLORS, UNIVERSAL_OWNER_ID } from "../config.js";
+import { antinukeEmbed } from "../embed.js";
 import { logger } from "../../lib/logger.js";
 
 interface ActionEntry {
@@ -70,18 +71,7 @@ async function punishUser(guild: Guild, userId: string, action: string, punishAc
     if (settings.logChannelId) {
       const logCh = guild.channels.cache.get(settings.logChannelId) as TextChannel | undefined;
       if (logCh) {
-        await logCh.send({
-          embeds: [new EmbedBuilder()
-            .setColor(COLORS.antinuke)
-            .setTitle("⚡ ANTINUKE TRIGGERED")
-            .addFields(
-              { name: "Action", value: action, inline: true },
-              { name: "Offender", value: `<@${userId}> (${userId})`, inline: true },
-              { name: "Punishment", value: punishAction, inline: true },
-              { name: "Reason", value: reason },
-            )
-            .setTimestamp()],
-        });
+        await logCh.send({ embeds: [antinukeEmbed(action, userId, punishAction, reason)] });
       }
     }
   } catch (err) {

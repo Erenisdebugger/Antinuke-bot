@@ -1,6 +1,7 @@
 import { Client, TextChannel, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ButtonInteraction } from "discord.js";
 import { createGiveaway, getGiveaway, updateGiveaway, getGiveawayEntries, enterGiveaway, getActiveGiveaways } from "../database.js";
 import { COLORS } from "../config.js";
+import { giveawayEmbed, giveawayEndedEmbed } from "../embed.js";
 import { logger } from "../../lib/logger.js";
 
 const giveawayTimers = new Map<number, ReturnType<typeof setTimeout>>();
@@ -22,7 +23,7 @@ export async function startGiveaway(
   const channel = client.channels.cache.get(channelId) as TextChannel | undefined;
   if (!channel) return { success: false, error: "Channel not found." };
 
-  const embed = buildGiveawayEmbed(prize, winnersCount, hostId, endsAt, 0, requirements);
+  const embed = giveawayEmbed(prize, winnersCount, hostId, endsAt, 0, requirements);
   const row = buildGiveawayRow(giveaway.id);
 
   const msg = await channel.send({ embeds: [embed], components: [row] });
@@ -33,23 +34,6 @@ export async function startGiveaway(
   return { success: true, id: giveaway.id };
 }
 
-function buildGiveawayEmbed(prize: string, winnersCount: number, hostId: string, endsAt: Date, entries: number, requirements?: string | null): EmbedBuilder {
-  const embed = new EmbedBuilder()
-    .setColor(COLORS.giveaway)
-    .setTitle(`🎉 GIVEAWAY — ${prize}`)
-    .addFields(
-      { name: "Winners", value: `${winnersCount}`, inline: true },
-      { name: "Entries", value: `${entries}`, inline: true },
-      { name: "Hosted by", value: `<@${hostId}>`, inline: true },
-      { name: "Ends", value: `<t:${Math.floor(endsAt.getTime() / 1000)}:R>`, inline: true },
-    )
-    .setFooter({ text: "Click 🎉 to enter!" })
-    .setTimestamp(endsAt);
-
-  if (requirements) embed.addFields({ name: "Requirements", value: requirements });
-
-  return embed;
-}
 
 function buildGiveawayRow(id: number): ActionRowBuilder<ButtonBuilder> {
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -79,7 +63,7 @@ export async function handleGiveawayEntry(interaction: ButtonInteraction): Promi
   if (channel && giveaway.messageId) {
     const msg = await channel.messages.fetch(giveaway.messageId).catch(() => null);
     if (msg) {
-      const embed = buildGiveawayEmbed(
+      const embed = giveawayEmbed(
         giveaway.prize, giveaway.winnersCount, giveaway.hostId,
         giveaway.endsAt, entries.length, giveaway.requirements
       );
@@ -118,16 +102,7 @@ async function endGiveaway(client: Client, id: number) {
     if (giveaway.messageId) {
       const msg = await channel.messages.fetch(giveaway.messageId).catch(() => null);
       if (msg) {
-        const endEmbed = new EmbedBuilder()
-          .setColor(winners.length > 0 ? COLORS.success : COLORS.red)
-          .setTitle(`🎉 GIVEAWAY ENDED — ${giveaway.prize}`)
-          .addFields(
-            { name: "Winners", value: winners.length > 0 ? winners.map(w => `<@${w}>`).join(", ") : "No winners (no entries)", inline: false },
-            { name: "Hosted by", value: `<@${giveaway.hostId}>`, inline: true },
-            { name: "Total Entries", value: `${entries.length}`, inline: true },
-          )
-          .setTimestamp();
-        await msg.edit({ embeds: [endEmbed], components: [] }).catch(() => {});
+        await msg.edit({ embeds: [giveawayEndedEmbed(giveaway.prize, winners, giveaway.hostId, entries.length)], components: [] }).catch(() => {});
       }
     }
 
