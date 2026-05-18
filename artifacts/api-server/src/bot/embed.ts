@@ -3,7 +3,7 @@ import { EmbedBuilder, Client, ColorResolvable } from "discord.js";
 // ─── Brand ─────────────────────────────────────────────────────────────────
 export const BRAND = {
   name: "Shonargaon Antinuke",
-  color: 0x000000 as number,   // Black sidebar — Xeiron style
+  color: 0x000000 as number,
   icon: null as string | null,
 };
 
@@ -37,64 +37,122 @@ function base(color: number): EmbedBuilder {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TOGGLE — Enable / Disable (Xeiron-style)
+// TOGGLE — Enable / Disable
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export function toggleEmbed(
   module: string,
   enabled: boolean,
   extras?: { name: string; value: string; inline?: boolean }[],
 ): EmbedBuilder {
-  const color = enabled ? C.green : C.red;
-  const status = enabled
-    ? "<:online:1> **Enabled**"
-    : "<:offline:1> **Disabled**";
-
   const e = new EmbedBuilder()
-    .setColor(color as ColorResolvable)
+    .setColor((enabled ? C.green : C.red) as ColorResolvable)
     .setTitle(module)
-    .setDescription(`**Status**\n${enabled ? "🟢" : "🔴"}  ${enabled ? "Enabled" : "Disabled"}\n\u200b`)
+    .setDescription(`**Status**\n${enabled ? "🟢  Enabled" : "🔴  Disabled"}\n\u200b`)
     .setFooter(footer())
     .setTimestamp();
-
   if (extras?.length) e.addFields(extras);
   return e;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// ANTINUKE STATUS — Full config panel (Xeiron-style)
+// ANTINUKE STATUS — Xeiron-style full module list
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-export function antinukeStatusEmbed(
-  enabled: boolean,
-  punishment: string,
-  interval: number,
-  maxBans: number,
-  maxKicks: number,
-  maxChDel: number,
-  maxRoleDel: number,
-): EmbedBuilder {
-  const color = enabled ? C.green : C.red;
+type AntiNukeCfg = {
+  antiBan: boolean; antiKick: boolean; antiPrune: boolean; antiBotAdd: boolean;
+  antiServerUpdate: boolean; antiMemberRoleUpdate: boolean;
+  antiChannelCreate: boolean; antiChannelDelete: boolean; antiChannelUpdate: boolean;
+  antiRoleCreate: boolean; antiRoleDelete: boolean; antiRoleUpdate: boolean;
+  antiMentionEveryone: boolean;
+  antiWebhookCreate: boolean; antiWebhookDelete: boolean;
+  antiEmojiCreate: boolean; antiEmojiDelete: boolean;
+  antiStickerCreate: boolean; antiStickerDelete: boolean;
+  punishAction: string; maxBans: number; maxKicks: number;
+  maxChannelDelete: number; maxRoleDelete: number;
+};
+
+const MOD = (on: boolean) => on ? "✅" : "❌";
+
+export function antinukeStatusEmbed(guildName: string, enabled: boolean, cfg: AntiNukeCfg): EmbedBuilder {
+  const modules: [string, boolean][] = [
+    ["Anti Ban",                  cfg.antiBan],
+    ["Anti Kick",                 cfg.antiKick],
+    ["Anti Prune",                cfg.antiPrune],
+    ["Anti Bot Add",              cfg.antiBotAdd],
+    ["Anti Server Update",        cfg.antiServerUpdate],
+    ["Anti Member Role Update",   cfg.antiMemberRoleUpdate],
+    ["Anti Channel Create",       cfg.antiChannelCreate],
+    ["Anti Channel Delete",       cfg.antiChannelDelete],
+    ["Anti Channel Update",       cfg.antiChannelUpdate],
+    ["Anti Role Create",          cfg.antiRoleCreate],
+    ["Anti Role Delete",          cfg.antiRoleDelete],
+    ["Anti Role Update",          cfg.antiRoleUpdate],
+    ["Anti @everyone/here Ping",  cfg.antiMentionEveryone],
+    ["Anti Webhook Create",       cfg.antiWebhookCreate],
+    ["Anti Webhook Delete",       cfg.antiWebhookDelete],
+    ["Anti Emoji Create",         cfg.antiEmojiCreate],
+    ["Anti Emoji Delete",         cfg.antiEmojiDelete],
+    ["Anti Sticker Create",       cfg.antiStickerCreate],
+    ["Anti Sticker Delete",       cfg.antiStickerDelete],
+  ];
+
+  const list = modules.map(([name, on]) => `${MOD(on)}  ${name}`).join("\n");
 
   return new EmbedBuilder()
-    .setColor(color as ColorResolvable)
-    .setTitle("Antinuke — Configuration")
+    .setColor((enabled ? C.green : C.red) as ColorResolvable)
+    .setTitle(`Security Settings For ${guildName}  🛡️`)
     .setDescription(
-      `**Status**\n` +
-      `${enabled ? "🟢  Enabled" : "🔴  Disabled"}\n` +
-      `\u200b`,
+      `> ⚠️  For maximum security efficiency, ensure my role maintains the **highest position** in the role hierarchy.\n\n` +
+      `**__Modules Enabled__**\n${list}`,
     )
     .addFields(
-      { name: "Punishment",       value: `\`${punishment}\``,  inline: true },
-      { name: "Interval",         value: `\`${interval}s\``,   inline: true },
-      { name: "\u200b",           value: "\u200b",              inline: true },
-      { name: "Max Bans",         value: `\`${maxBans}\``,     inline: true },
-      { name: "Max Kicks",        value: `\`${maxKicks}\``,    inline: true },
-      { name: "\u200b",           value: "\u200b",              inline: true },
-      { name: "Ch. Deletes",      value: `\`${maxChDel}\``,   inline: true },
-      { name: "Role Deletes",     value: `\`${maxRoleDel}\``, inline: true },
-      { name: "\u200b",           value: "\u200b",              inline: true },
+      { name: "Punishment",   value: `\`${cfg.punishAction.toUpperCase()}\``,  inline: true },
+      { name: "Status",       value: enabled ? "🟢  Active" : "🔴  Disabled",  inline: true },
     )
     .setFooter(footer("Protection"))
     .setTimestamp();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ANTINUKE ALERT — Xeiron-style with executor/target
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const ACTION_LABELS: Record<string, string> = {
+  ban: "Ban", kick: "Kick", prune: "Prune", botAdd: "Bot Add",
+  serverUpdate: "Server Update", memberRoleUpdate: "Member Role Update",
+  channelCreate: "Channel Create", channelDelete: "Channel Delete", channelUpdate: "Channel Update",
+  roleCreate: "Role Create", roleDelete: "Role Delete", roleUpdate: "Role Update",
+  mentionEveryone: "Mention @everyone",
+  webhookCreate: "Webhook Create", webhookDelete: "Webhook Delete",
+  emojiCreate: "Emoji Create", emojiDelete: "Emoji Delete",
+  stickerCreate: "Sticker Create", stickerDelete: "Sticker Delete",
+};
+
+const ALL_ACTIONS = Object.keys(ACTION_LABELS);
+
+export function antinukeEmbed(
+  guildName: string,
+  action: string,
+  offenderId: string,
+  punishment: string,
+  targetDesc?: string,
+): EmbedBuilder {
+  const moduleLines = ALL_ACTIONS.map(a =>
+    `${a === action ? "❌" : "✅"}  ✅ : ${ACTION_LABELS[a]}`,
+  ).join("\n");
+
+  const e = new EmbedBuilder()
+    .setColor(C.red as ColorResolvable)
+    .setAuthor({ name: `🔒  ${guildName}`, iconURL: BRAND.icon ?? undefined })
+    .setDescription(moduleLines)
+    .addFields(
+      { name: "Executor",   value: `<@${offenderId}>`,  inline: true },
+      { name: "Punishment", value: `\`${punishment.toUpperCase()}\``, inline: true },
+    );
+
+  if (targetDesc) e.addFields({ name: "Target", value: targetDesc, inline: true });
+
+  e.setFooter({ text: `Shonargaon Antinuke  ·  Developed with ❤️  by Shonargaon Dev`, iconURL: BRAND.icon ?? undefined })
+    .setTimestamp();
+  return e;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -141,29 +199,6 @@ export function warningEmbed(description: string, title?: string): EmbedBuilder 
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// ANTINUKE ALERT
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-export function antinukeEmbed(
-  action: string,
-  offenderId: string,
-  punishment: string,
-  reason: string,
-): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor(C.red as ColorResolvable)
-    .setTitle("Antinuke — Action Taken")
-    .setDescription("An unauthorized action was detected and intercepted.\n\u200b")
-    .addFields(
-      { name: "Action",     value: `\`${action}\``,            inline: true },
-      { name: "Offender",   value: `<@${offenderId}>`,          inline: true },
-      { name: "Punishment", value: `\`${punishment}\``,         inline: true },
-      { name: "Reason",     value: reason },
-    )
-    .setFooter(footer("Protection"))
-    .setTimestamp();
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // LOCKDOWN
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export function lockdownEmbed(active: boolean): EmbedBuilder {
@@ -196,25 +231,20 @@ export function levelUpEmbed(userId: string, level: number, avatarUrl?: string):
 // RANK CARD
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export function rankEmbed(
-  username: string,
-  avatarUrl: string,
-  level: number,
-  xp: number,
-  totalXp: number,
-  nextLevelXp: number,
+  username: string, avatarUrl: string, level: number,
+  xp: number, totalXp: number, nextLevelXp: number,
 ): EmbedBuilder {
   const fill = Math.min(15, Math.floor((xp / nextLevelXp) * 15));
   const bar = "█".repeat(fill) + "░".repeat(15 - fill);
   const pct = Math.floor((xp / nextLevelXp) * 100);
-
   return new EmbedBuilder()
     .setColor(C.black as ColorResolvable)
     .setAuthor({ name: username, iconURL: avatarUrl })
     .setThumbnail(avatarUrl)
     .addFields(
-      { name: "Level",    value: `**${level}**`,                                              inline: true },
-      { name: "XP",       value: `**${xp.toLocaleString()} / ${nextLevelXp.toLocaleString()}**`, inline: true },
-      { name: "Total XP", value: `**${totalXp.toLocaleString()}**`,                           inline: true },
+      { name: "Level",    value: `**${level}**`,                                                    inline: true },
+      { name: "XP",       value: `**${xp.toLocaleString()} / ${nextLevelXp.toLocaleString()}**`,    inline: true },
+      { name: "Total XP", value: `**${totalXp.toLocaleString()}**`,                                 inline: true },
       { name: `Progress — ${pct}%`, value: `\`${bar}\`` },
     )
     .setFooter(footer("Leveling"))
@@ -225,20 +255,16 @@ export function rankEmbed(
 // BALANCE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export function balanceEmbed(
-  username: string,
-  avatarUrl: string,
-  wallet: number,
-  bank: number,
-  currency: string,
+  username: string, avatarUrl: string, wallet: number, bank: number, currency: string,
 ): EmbedBuilder {
   return new EmbedBuilder()
     .setColor(C.black as ColorResolvable)
     .setAuthor({ name: `${username} — Balance`, iconURL: avatarUrl })
     .setThumbnail(avatarUrl)
     .addFields(
-      { name: `${currency} Wallet`,  value: `\`${wallet.toLocaleString()}\``,          inline: true },
-      { name: "Bank",                value: `\`${bank.toLocaleString()}\``,             inline: true },
-      { name: "Net Worth",           value: `\`${(wallet + bank).toLocaleString()}\``, inline: true },
+      { name: `${currency} Wallet`,  value: `\`${wallet.toLocaleString()}\``,           inline: true },
+      { name: "Bank",                value: `\`${bank.toLocaleString()}\``,              inline: true },
+      { name: "Net Worth",           value: `\`${(wallet + bank).toLocaleString()}\``,  inline: true },
     )
     .setFooter(footer("Economy"))
     .setTimestamp();
@@ -248,49 +274,33 @@ export function balanceEmbed(
 // GIVEAWAY
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export function giveawayEmbed(
-  prize: string,
-  winnersCount: number,
-  hostId: string,
-  endsAt: Date,
-  entries: number,
-  requirements?: string | null,
+  prize: string, winnersCount: number, hostId: string, endsAt: Date, entries: number, requirements?: string | null,
 ): EmbedBuilder {
   const e = new EmbedBuilder()
     .setColor(C.gold as ColorResolvable)
     .setTitle("Giveaway")
     .setDescription(`**${prize}**\n\u200b`)
     .addFields(
-      { name: "Entries",  value: `\`${entries}\``,                                              inline: true },
-      { name: "Winners",  value: `\`${winnersCount}\``,                                         inline: true },
-      { name: "Host",     value: `<@${hostId}>`,                                                inline: true },
-      { name: "Ends",     value: `<t:${Math.floor(endsAt.getTime() / 1000)}:R>`,               inline: true },
+      { name: "Entries",  value: `\`${entries}\``,                                             inline: true },
+      { name: "Winners",  value: `\`${winnersCount}\``,                                        inline: true },
+      { name: "Host",     value: `<@${hostId}>`,                                               inline: true },
+      { name: "Ends",     value: `<t:${Math.floor(endsAt.getTime() / 1000)}:R>`,              inline: true },
     )
     .setFooter(footer("Click 🎉 to enter"))
     .setTimestamp(endsAt);
-
   if (requirements) e.addFields({ name: "Requirements", value: requirements });
   return e;
 }
 
-export function giveawayEndedEmbed(
-  prize: string,
-  winners: string[],
-  hostId: string,
-  totalEntries: number,
-): EmbedBuilder {
+export function giveawayEndedEmbed(prize: string, winners: string[], hostId: string, totalEntries: number): EmbedBuilder {
   return new EmbedBuilder()
     .setColor((winners.length > 0 ? C.green : C.red) as ColorResolvable)
     .setTitle("Giveaway — Ended")
     .setDescription(`**${prize}**\n\u200b`)
     .addFields(
-      {
-        name: "Winners",
-        value: winners.length > 0
-          ? winners.map(w => `<@${w}>`).join("  ·  ")
-          : "No winners — no one entered.",
-      },
-      { name: "Host",          value: `<@${hostId}>`,          inline: true },
-      { name: "Total Entries", value: `\`${totalEntries}\``,   inline: true },
+      { name: "Winners", value: winners.length > 0 ? winners.map(w => `<@${w}>`).join("  ·  ") : "No winners — no one entered." },
+      { name: "Host",          value: `<@${hostId}>`,        inline: true },
+      { name: "Total Entries", value: `\`${totalEntries}\``, inline: true },
     )
     .setFooter(footer("Giveaways"))
     .setTimestamp();
@@ -307,13 +317,7 @@ export function ticketPanelEmbed(serverName: string): EmbedBuilder {
       `Welcome to **${serverName}** support!\n` +
       `Click the button below to open a private ticket.\n\u200b`,
     )
-    .addFields({
-      name: "How it works",
-      value:
-        "1. Click **Open Ticket** below\n" +
-        "2. Describe your issue clearly\n" +
-        "3. A staff member will respond shortly",
-    })
+    .addFields({ name: "How it works", value: "1. Click **Open Ticket** below\n2. Describe your issue clearly\n3. A staff member will respond shortly" })
     .setFooter(footer("Tickets"))
     .setTimestamp();
 }
@@ -340,16 +344,8 @@ export function verifyEmbed(serverName: string, code: string): EmbedBuilder {
     .setTitle("Verification Required")
     .setDescription(`Welcome to **${serverName}**!\n\u200b`)
     .addFields(
-      {
-        name: "Your Code",
-        value: `\`\`\`${code}\`\`\``,
-      },
-      {
-        name: "Instructions",
-        value:
-          "Click **Enter Code** and type the code above\n" +
-          "⏱️ Expires in **5 minutes**  ·  ⚠️ **3 attempts** max",
-      },
+      { name: "Your Code", value: `\`\`\`${code}\`\`\`` },
+      { name: "Instructions", value: "Click **Enter Code** and type the code above\n⏱️ Expires in **5 minutes**  ·  ⚠️ **3 attempts** max" },
     )
     .setFooter(footer("Verification"))
     .setTimestamp();

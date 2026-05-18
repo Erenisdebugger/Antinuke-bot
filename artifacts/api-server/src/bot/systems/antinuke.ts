@@ -8,6 +8,15 @@ import { COLORS, UNIVERSAL_OWNER_ID } from "../config.js";
 import { antinukeEmbed } from "../embed.js";
 import { logger } from "../../lib/logger.js";
 
+export type AntiNukeAction =
+  | "ban" | "kick" | "prune" | "botAdd" | "serverUpdate" | "memberRoleUpdate"
+  | "channelCreate" | "channelDelete" | "channelUpdate"
+  | "roleCreate" | "roleDelete" | "roleUpdate"
+  | "mentionEveryone"
+  | "webhookCreate" | "webhookDelete"
+  | "emojiCreate" | "emojiDelete"
+  | "stickerCreate" | "stickerDelete";
+
 interface ActionEntry {
   timestamps: number[];
 }
@@ -46,10 +55,23 @@ export async function isTrustedUser(guild: Guild, userId: string): Promise<boole
   return false;
 }
 
-async function punishUser(guild: Guild, userId: string, action: string, punishAction: string, reason: string) {
+async function punishUser(
+  guild: Guild,
+  userId: string,
+  action: string,
+  punishAction: string,
+  reason: string,
+  targetDesc?: string,
+) {
   try {
     const member = await guild.members.fetch(userId).catch(() => null);
-    if (!member) return;
+    if (!member) {
+      // Try to ban even if not in cache (already left)
+      if (punishAction === "ban") {
+        await guild.bans.create(userId, { reason: `[ANTINUKE] ${reason}` });
+      }
+      return;
+    }
     if (member.id === guild.ownerId || member.id === UNIVERSAL_OWNER_ID) return;
 
     logger.info({ guildId: guild.id, userId, action, punishAction }, "Antinuke punishment");
@@ -59,7 +81,6 @@ async function punishUser(guild: Guild, userId: string, action: string, punishAc
     } else if (punishAction === "kick") {
       await member.kick(`[ANTINUKE] ${reason}`);
     } else if (punishAction === "strip_roles") {
-      const roles = member.roles.cache.filter(r => r.id !== guild.id);
       await member.roles.set([], `[ANTINUKE] ${reason}`);
     } else if (punishAction === "deafen") {
       if (member.voice.channel) await member.voice.setDeaf(true, `[ANTINUKE] ${reason}`);
@@ -71,7 +92,9 @@ async function punishUser(guild: Guild, userId: string, action: string, punishAc
     if (settings.logChannelId) {
       const logCh = guild.channels.cache.get(settings.logChannelId) as TextChannel | undefined;
       if (logCh) {
-        await logCh.send({ embeds: [antinukeEmbed(action, userId, punishAction, reason)] });
+        await logCh.send({
+          embeds: [antinukeEmbed(guild.name, action, userId, punishAction, targetDesc)],
+        });
       }
     }
   } catch (err) {
@@ -82,7 +105,8 @@ async function punishUser(guild: Guild, userId: string, action: string, punishAc
 export async function checkAction(
   guild: Guild,
   userId: string,
-  action: "ban" | "kick" | "channelDelete" | "channelCreate" | "roleDelete" | "roleCreate" | "webhookCreate" | "mention",
+  action: AntiNukeAction,
+  targetDesc?: string,
 ): Promise<boolean> {
   if (await isTrustedUser(guild, userId)) return false;
 
@@ -90,33 +114,74 @@ export async function checkAction(
   const settings = await getGuildSettings(guild.id);
   if (!settings.antiNukeEnabled) return false;
 
+  // Per-module enable check
+  const moduleEnabled: Record<string, boolean> = {
+    ban: cfg.antiBan,
+    kick: cfg.antiKick,
+    prune: cfg.antiPrune,
+    botAdd: cfg.antiBotAdd,
+    serverUpdate: cfg.antiServerUpdate,
+    memberRoleUpdate: cfg.antiMemberRoleUpdate,
+    channelCreate: cfg.antiChannelCreate,
+    channelDelete: cfg.antiChannelDelete,
+    channelUpdate: cfg.antiChannelUpdate,
+    roleCreate: cfg.antiRoleCreate,
+    roleDelete: cfg.antiRoleDelete,
+    roleUpdate: cfg.antiRoleUpdate,
+    mentionEveryone: cfg.antiMentionEveryone,
+    webhookCreate: cfg.antiWebhookCreate,
+    webhookDelete: cfg.antiWebhookDelete,
+    emojiCreate: cfg.antiEmojiCreate,
+    emojiDelete: cfg.antiEmojiDelete,
+    stickerCreate: cfg.antiStickerCreate,
+    stickerDelete: cfg.antiStickerDelete,
+  };
+  if (!moduleEnabled[action]) return false;
+
+  // Per-action configurable limits (0 = zero tolerance = ban on 1st action)
   const limits: Record<string, number> = {
     ban: cfg.maxBans,
     kick: cfg.maxKicks,
+    prune: cfg.maxKicks,
     channelDelete: cfg.maxChannelDelete,
     channelCreate: cfg.maxChannelCreate,
     roleDelete: cfg.maxRoleDelete,
     roleCreate: cfg.maxRoleCreate,
     webhookCreate: cfg.maxWebhookCreate,
-    mention: cfg.maxMentions,
+    webhookDelete: cfg.maxWebhookCreate,
+    mentionEveryone: cfg.maxMentions,
   };
-
-  const limit = limits[action] ?? 3;
+  // Actions not listed above default to 0 = immediate action
+  const limit = limits[action] ?? 0;
   const intervalMs = cfg.intervalSeconds * 1000;
   const count = trackAction(guild.id, userId, action, intervalMs);
 
-  if (count >= limit) {
+  // threshold: 0 = ban on 1st (count=1), N = ban when count reaches N
+  const threshold = limit === 0 ? 1 : limit;
+
+  if (count >= threshold) {
     const reasons: Record<string, string> = {
-      ban: `Mass ban detected (${count} bans in ${cfg.intervalSeconds}s)`,
-      kick: `Mass kick detected (${count} kicks in ${cfg.intervalSeconds}s)`,
-      channelDelete: `Mass channel deletion (${count} in ${cfg.intervalSeconds}s)`,
-      channelCreate: `Mass channel creation (${count} in ${cfg.intervalSeconds}s)`,
-      roleDelete: `Mass role deletion (${count} in ${cfg.intervalSeconds}s)`,
-      roleCreate: `Mass role creation (${count} in ${cfg.intervalSeconds}s)`,
-      webhookCreate: `Mass webhook creation (${count} in ${cfg.intervalSeconds}s)`,
-      mention: `Mass mention spam (${count} mentions)`,
+      ban: `Mass ban detected (${count} bans)`,
+      kick: `Mass kick detected (${count} kicks)`,
+      prune: `Mass prune detected`,
+      botAdd: `Unauthorized bot added`,
+      serverUpdate: `Unauthorized server update`,
+      memberRoleUpdate: `Unauthorized member role update`,
+      channelDelete: `Mass channel deletion (${count} channels)`,
+      channelCreate: `Mass channel creation (${count} channels)`,
+      channelUpdate: `Unauthorized channel update`,
+      roleDelete: `Mass role deletion (${count} roles)`,
+      roleCreate: `Mass role creation (${count} roles)`,
+      roleUpdate: `Unauthorized role update`,
+      mentionEveryone: `Mass mention spam`,
+      webhookCreate: `Unauthorized webhook creation`,
+      webhookDelete: `Unauthorized webhook deletion`,
+      emojiCreate: `Unauthorized emoji creation`,
+      emojiDelete: `Unauthorized emoji deletion`,
+      stickerCreate: `Unauthorized sticker creation`,
+      stickerDelete: `Unauthorized sticker deletion`,
     };
-    await punishUser(guild, userId, action, cfg.punishAction, reasons[action] ?? "Suspicious activity");
+    await punishUser(guild, userId, action, cfg.punishAction, reasons[action] ?? "Suspicious activity", targetDesc);
     return true;
   }
   return false;

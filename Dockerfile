@@ -1,8 +1,11 @@
 FROM node:22-alpine AS base
 WORKDIR /app
-RUN npm install -g pnpm
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
+# Pin pnpm to v9 to match lockfile format
+RUN npm install -g pnpm@9
+
+# Copy workspace config & npmrc BEFORE install so catalog/peer settings apply
+COPY .npmrc package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
 COPY lib/ ./lib/
 COPY artifacts/api-server/ ./artifacts/api-server/
 COPY scripts/ ./scripts/

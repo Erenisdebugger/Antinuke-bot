@@ -2,6 +2,7 @@ import {
   SlashCommandBuilder, REST, Routes, Client,
   ChatInputCommandInteraction, EmbedBuilder,
   PermissionFlagsBits, GuildMember, TextChannel,
+  ButtonBuilder, ButtonStyle, ActionRowBuilder,
 } from "discord.js";
 import {
   getGuildSettings, updateGuildSettings, getAntiNukeConfig, updateAntiNukeConfig,
@@ -32,23 +33,92 @@ import {
 import { COLORS, ECONOMY_CURRENCY, UNBYPSSABLE_ROLE_NAME, xpForLevel, UNIVERSAL_OWNER_ID } from "../config.js";
 import { logger } from "../../lib/logger.js";
 
+const ANTINUKE_MODULE_CHOICES = [
+  { name: "Anti Ban",                 value: "antiBan" },
+  { name: "Anti Kick",                value: "antiKick" },
+  { name: "Anti Prune",               value: "antiPrune" },
+  { name: "Anti Bot Add",             value: "antiBotAdd" },
+  { name: "Anti Server Update",       value: "antiServerUpdate" },
+  { name: "Anti Member Role Update",  value: "antiMemberRoleUpdate" },
+  { name: "Anti Channel Create",      value: "antiChannelCreate" },
+  { name: "Anti Channel Delete",      value: "antiChannelDelete" },
+  { name: "Anti Channel Update",      value: "antiChannelUpdate" },
+  { name: "Anti Role Create",         value: "antiRoleCreate" },
+  { name: "Anti Role Delete",         value: "antiRoleDelete" },
+  { name: "Anti Role Update",         value: "antiRoleUpdate" },
+  { name: "Anti @everyone/here Ping", value: "antiMentionEveryone" },
+  { name: "Anti Webhook Create",      value: "antiWebhookCreate" },
+  { name: "Anti Webhook Delete",      value: "antiWebhookDelete" },
+  { name: "Anti Emoji Create",        value: "antiEmojiCreate" },
+  { name: "Anti Emoji Delete",        value: "antiEmojiDelete" },
+  { name: "Anti Sticker Create",      value: "antiStickerCreate" },
+  { name: "Anti Sticker Delete",      value: "antiStickerDelete" },
+];
+
+// Build the interactive button panel for antinuke module toggles
+export function buildAntinukePanel(
+  guildName: string,
+  cfg: Record<string, unknown>,
+  guildId: string,
+): { embed: EmbedBuilder; components: ActionRowBuilder<ButtonBuilder>[] } {
+  const MOD = (on: unknown) => on ? "✅" : "❌";
+  const lines = ANTINUKE_MODULE_CHOICES.map(m => `${MOD(cfg[m.value])}  ${m.name}`).join("\n");
+
+  const embed = new EmbedBuilder()
+    .setColor(0x000000)
+    .setTitle(`AntiNuke Configuration Panel — ${guildName}`)
+    .setDescription(
+      `Toggle modules below.\nClick any button to enable/disable that module.\n\n**Module Status**\n${lines}`,
+    )
+    .setFooter({ text: "Shonargaon Antinuke  ·  Toggle Panel", iconURL: BRAND.icon ?? undefined })
+    .setTimestamp();
+
+  // Build button rows (max 5 per row, max 5 rows = 25 buttons)
+  const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+  let currentRow = new ActionRowBuilder<ButtonBuilder>();
+  let count = 0;
+
+  for (const mod of ANTINUKE_MODULE_CHOICES) {
+    if (count > 0 && count % 5 === 0) {
+      rows.push(currentRow);
+      currentRow = new ActionRowBuilder<ButtonBuilder>();
+    }
+    const enabled = cfg[mod.value] as boolean ?? true;
+    currentRow.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`antinuke:toggle:${mod.value}:${guildId}`)
+        .setLabel(mod.name.replace("Anti ", ""))
+        .setStyle(enabled ? ButtonStyle.Success : ButtonStyle.Danger)
+        .setEmoji(enabled ? "✅" : "❌"),
+    );
+    count++;
+  }
+  if (currentRow.components.length > 0) rows.push(currentRow);
+
+  return { embed, components: rows };
+}
+
 const commands = [
   // ── ANTINUKE ──────────────────────────────────────────────────────────────
   new SlashCommandBuilder().setName("antinuke").setDescription("Antinuke system")
     .addSubcommand(s => s.setName("enable").setDescription("Enable antinuke"))
     .addSubcommand(s => s.setName("disable").setDescription("Disable antinuke"))
-    .addSubcommand(s => s.setName("status").setDescription("Show antinuke status"))
-    .addSubcommand(s => s.setName("config").setDescription("Configure antinuke limits")
-      .addIntegerOption(o => o.setName("max_bans").setDescription("Max bans before action").setMinValue(1).setMaxValue(20))
-      .addIntegerOption(o => o.setName("max_kicks").setDescription("Max kicks before action").setMinValue(1).setMaxValue(20))
-      .addIntegerOption(o => o.setName("max_channel_delete").setDescription("Max channel deletions").setMinValue(1).setMaxValue(10))
-      .addIntegerOption(o => o.setName("max_role_delete").setDescription("Max role deletions").setMinValue(1).setMaxValue(10))
-      .addIntegerOption(o => o.setName("interval").setDescription("Interval in seconds").setMinValue(5).setMaxValue(60))
+    .addSubcommand(s => s.setName("status").setDescription("Show full module status"))
+    .addSubcommand(s => s.setName("panel").setDescription("Open interactive toggle panel for all modules"))
+    .addSubcommand(s => s.setName("toggle").setDescription("Toggle a specific antinuke module on/off")
+      .addStringOption(o => o.setName("module").setDescription("Module to toggle").setRequired(true)
+        .addChoices(...ANTINUKE_MODULE_CHOICES)))
+    .addSubcommand(s => s.setName("config").setDescription("Configure punishment and limits")
       .addStringOption(o => o.setName("action").setDescription("Punishment action").addChoices(
         { name: "Ban", value: "ban" },
         { name: "Kick", value: "kick" },
         { name: "Strip Roles", value: "strip_roles" },
       ))
+      .addIntegerOption(o => o.setName("max_bans").setDescription("Max bans (0=zero tolerance)").setMinValue(0).setMaxValue(20))
+      .addIntegerOption(o => o.setName("max_kicks").setDescription("Max kicks (0=zero tolerance)").setMinValue(0).setMaxValue(20))
+      .addIntegerOption(o => o.setName("max_channel_delete").setDescription("Max channel deletions (0=zero tolerance)").setMinValue(0).setMaxValue(10))
+      .addIntegerOption(o => o.setName("max_role_delete").setDescription("Max role deletions (0=zero tolerance)").setMinValue(0).setMaxValue(10))
+      .addIntegerOption(o => o.setName("interval").setDescription("Interval in seconds").setMinValue(5).setMaxValue(60))
     ),
 
   // ── WHITELIST ──────────────────────────────────────────────────────────────
@@ -339,41 +409,67 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           await interaction.reply({ content: "❌ You need Administrator permission.", ephemeral: true }); return;
         }
         const sub = interaction.options.getSubcommand();
+
         if (sub === "enable") {
           await updateGuildSettings(interaction.guild.id, { antiNukeEnabled: true });
           await interaction.reply({ embeds: [toggleEmbed("⚡  Antinuke", true)] });
+
         } else if (sub === "disable") {
           await updateGuildSettings(interaction.guild.id, { antiNukeEnabled: false });
           await interaction.reply({ embeds: [toggleEmbed("⚡  Antinuke", false)] });
+
         } else if (sub === "status") {
           const settings = await getGuildSettings(interaction.guild.id);
           const cfg = await getAntiNukeConfig(interaction.guild.id);
           await interaction.reply({
-            embeds: [antinukeStatusEmbed(
-              settings.antiNukeEnabled, cfg.punishAction, cfg.intervalSeconds,
-              cfg.maxBans, cfg.maxKicks, cfg.maxChannelDelete, cfg.maxRoleDelete,
-            )],
+            embeds: [antinukeStatusEmbed(interaction.guild.name, settings.antiNukeEnabled, cfg)],
           });
+
+        } else if (sub === "panel") {
+          if (!await requireTrusted(interaction)) {
+            await interaction.reply({ embeds: [errorEmbed("Only trusted users can open the panel.")], ephemeral: true }); return;
+          }
+          const cfg = await getAntiNukeConfig(interaction.guild.id);
+          const { embed, components } = buildAntinukePanel(
+            interaction.guild.name, cfg as unknown as Record<string, unknown>, interaction.guild.id,
+          );
+          await interaction.reply({ embeds: [embed], components });
+
+        } else if (sub === "toggle") {
+          if (!await requireTrusted(interaction)) {
+            await interaction.reply({ embeds: [errorEmbed("Only trusted users can toggle modules.")], ephemeral: true }); return;
+          }
+          const module = interaction.options.getString("module", true);
+          const cfg = await getAntiNukeConfig(interaction.guild.id);
+          const current = (cfg as unknown as Record<string, unknown>)[module] as boolean ?? true;
+          await updateAntiNukeConfig(interaction.guild.id, { [module]: !current } as any);
+          const label = ANTINUKE_MODULE_CHOICES.find(m => m.value === module)?.name ?? module;
+          await interaction.reply({
+            embeds: [toggleEmbed(`⚡  ${label}`, !current)],
+          });
+
         } else if (sub === "config") {
           const updates: Record<string, unknown> = {};
-          const maxBans = interaction.options.getInteger("max_bans");
-          const maxKicks = interaction.options.getInteger("max_kicks");
-          const maxChDel = interaction.options.getInteger("max_channel_delete");
+          const maxBans   = interaction.options.getInteger("max_bans");
+          const maxKicks  = interaction.options.getInteger("max_kicks");
+          const maxChDel  = interaction.options.getInteger("max_channel_delete");
           const maxRoleDel = interaction.options.getInteger("max_role_delete");
-          const interval = interaction.options.getInteger("interval");
-          const action = interaction.options.getString("action");
-          if (maxBans !== null) updates["maxBans"] = maxBans;
-          if (maxKicks !== null) updates["maxKicks"] = maxKicks;
-          if (maxChDel !== null) updates["maxChannelDelete"] = maxChDel;
-          if (maxRoleDel !== null) updates["maxRoleDelete"] = maxRoleDel;
-          if (interval !== null) updates["intervalSeconds"] = interval;
+          const interval  = interaction.options.getInteger("interval");
+          const action    = interaction.options.getString("action");
+          if (maxBans    !== null) updates["maxBans"]          = maxBans;
+          if (maxKicks   !== null) updates["maxKicks"]         = maxKicks;
+          if (maxChDel   !== null) updates["maxChannelDelete"] = maxChDel;
+          if (maxRoleDel !== null) updates["maxRoleDelete"]    = maxRoleDel;
+          if (interval   !== null) updates["intervalSeconds"]  = interval;
           if (action) updates["punishAction"] = action;
           if (Object.keys(updates).length > 0) {
             await updateAntiNukeConfig(interaction.guild.id, updates);
           }
           const settings2 = await getGuildSettings(interaction.guild.id);
           const cfg2 = await getAntiNukeConfig(interaction.guild.id);
-          await interaction.reply({ embeds: [antinukeStatusEmbed(settings2.antiNukeEnabled, cfg2.punishAction, cfg2.intervalSeconds, cfg2.maxBans, cfg2.maxKicks, cfg2.maxChannelDelete, cfg2.maxRoleDelete)] });
+          await interaction.reply({
+            embeds: [antinukeStatusEmbed(interaction.guild.name, settings2.antiNukeEnabled, cfg2)],
+          });
         }
         break;
       }

@@ -13,8 +13,15 @@ import { onGuildBanAdd } from "./events/guildBanAdd.js";
 import { onGuildBanRemove } from "./events/guildBanRemove.js";
 import { onChannelCreate } from "./events/channelCreate.js";
 import { onChannelDelete } from "./events/channelDelete.js";
+import { onChannelUpdate } from "./events/channelUpdate.js";
 import { onRoleCreate } from "./events/roleCreate.js";
 import { onRoleDelete } from "./events/roleDelete.js";
+import { onRoleUpdate } from "./events/roleUpdate.js";
+import { onGuildUpdate } from "./events/guildUpdate.js";
+import { onEmojiCreate } from "./events/emojiCreate.js";
+import { onEmojiDelete } from "./events/emojiDelete.js";
+import { onStickerCreate, onStickerDelete } from "./events/stickerUpdate.js";
+import { onWebhooksUpdate } from "./events/webhookUpdate.js";
 import { onInteractionCreate } from "./events/interactionCreate.js";
 import { onMessageReactionAdd } from "./events/messageReactionAdd.js";
 import { onMessageReactionRemove } from "./events/messageReactionRemove.js";
@@ -34,6 +41,8 @@ export function startBot(): void {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildModeration,
       GatewayIntentBits.GuildMessageReactions,
+      GatewayIntentBits.GuildEmojisAndStickers,
+      GatewayIntentBits.GuildWebhooks,
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.GuildVoiceStates,
       GatewayIntentBits.DirectMessages,
@@ -49,6 +58,7 @@ export function startBot(): void {
 
   client.once(Events.ClientReady, () => onReady(client));
   client.on(Events.GuildCreate, onGuildCreate);
+  client.on(Events.GuildUpdate, onGuildUpdate);
   client.on(Events.GuildMemberAdd, onGuildMemberAdd);
   client.on(Events.GuildMemberRemove, onGuildMemberRemove);
   client.on(Events.GuildMemberUpdate, onGuildMemberUpdate);
@@ -59,8 +69,15 @@ export function startBot(): void {
   client.on(Events.GuildBanRemove, onGuildBanRemove);
   client.on(Events.ChannelCreate, onChannelCreate);
   client.on(Events.ChannelDelete, onChannelDelete);
+  client.on(Events.ChannelUpdate, onChannelUpdate as any);
   client.on(Events.GuildRoleCreate, onRoleCreate);
   client.on(Events.GuildRoleDelete, onRoleDelete);
+  client.on(Events.GuildRoleUpdate, onRoleUpdate);
+  client.on(Events.GuildEmojiCreate, onEmojiCreate);
+  client.on(Events.GuildEmojiDelete, onEmojiDelete);
+  client.on(Events.GuildStickerCreate, onStickerCreate);
+  client.on(Events.GuildStickerDelete, onStickerDelete);
+  client.on(Events.WebhooksUpdate, onWebhooksUpdate as any);
   client.on(Events.InteractionCreate, onInteractionCreate);
   client.on(Events.MessageReactionAdd, onMessageReactionAdd);
   client.on(Events.MessageReactionRemove, onMessageReactionRemove);
