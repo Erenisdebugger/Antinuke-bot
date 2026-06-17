@@ -16,7 +16,13 @@ export async function onReady(client: Client): Promise<void> {
     status: "online",
   });
 
-  await registerCommands(client);
+  // Only register slash commands from one instance to avoid overwriting.
+  // Set REGISTER_COMMANDS=true on Replit; leave it unset on Railway.
+  if (process.env["REGISTER_COMMANDS"] === "true") {
+    await registerCommands(client);
+  } else {
+    logger.info("Skipping command registration (REGISTER_COMMANDS not set)");
+  }
   await resumeGiveaways(client);
 
   // Snapshot all guilds for recovery
