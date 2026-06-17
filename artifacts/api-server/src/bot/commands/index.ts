@@ -1147,25 +1147,26 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
           "  L Protocol          : Autonomous Intelligence Layer",
           "  L Core Temp         : NOMINAL [STABLE]",
           "",
-          "• BUILD ENV           ::",
-          "  L Platform          : Replit  [Cloud VM]",
-          "  L Shell             : /bin/bash  [root]",
-          "  L Runtime           : Node.js v20.x",
-          "  L Framework         : discord.js v14.x",
+          "• SYSTEM ENV          ::",
+          "  L OS                : Kali Linux  [GNU/Linux]",
+          "  L Kernel            : Linux 6.1.0-kali1-amd64",
+          "  L Shell             : /bin/zsh  [root@kali]",
+          "  L Runtime           : Node.js v24.x",
+          "  L Framework         : discord.js v14",
           "",
           SEP,
           "",
           "• DEPLOYMENT          ::",
           `  L Servers           : ${totalGuilds}`,
           `  L Users             : ${totalUsers.toLocaleString()}`,
-          `  L Commands          : 28`,
+          `  L Commands          : 32`,
           `  L Memory            : ${memMB} MB`,
           `  L Session           : ${uptimeStr}`,
           "",
           SEP,
           "",
-          "root@keren-os:~# All systems operational.",
-          "root@keren-os:~# █",
+          "root@kali:~# All systems operational.",
+          "root@kali:~# █",
         ].join("\n");
 
         const devEmbed = new EmbedBuilder()
@@ -1186,10 +1187,10 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
             .setEmoji("🌊")
             .setStyle(ButtonStyle.Secondary),
           new ButtonBuilder()
-            .setCustomId("dev:support")
+            .setURL("https://discord.gg/HXKmJgq9T")
             .setLabel("Support Server")
             .setEmoji("⭐")
-            .setStyle(ButtonStyle.Secondary),
+            .setStyle(ButtonStyle.Link),
         );
 
         await interaction.editReply({ embeds: [devEmbed], components: [devRow] });
