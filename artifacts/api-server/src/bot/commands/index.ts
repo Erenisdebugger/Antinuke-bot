@@ -263,16 +263,17 @@ const commands = [
 
   // ── REACTION ROLES ────────────────────────────────────────────────────────
   new SlashCommandBuilder().setName("reactionrole").setDescription("Manage reaction roles")
-    .addSubcommand(s => s.setName("add").setDescription("Add reaction role")
-      .addStringOption(o => o.setName("message_id").setDescription("Message ID").setRequired(true))
-      .addStringOption(o => o.setName("emoji").setDescription("Emoji").setRequired(true))
-      .addRoleOption(o => o.setName("role").setDescription("Role to assign").setRequired(true))
-      .addStringOption(o => o.setName("mode").setDescription("Mode").addChoices(
-        { name: "Toggle", value: "toggle" },
-        { name: "Add only", value: "add" },
-        { name: "Remove only", value: "remove" },
+    .addSubcommand(s => s.setName("add").setDescription("Add reaction role to a message")
+      .addChannelOption(o => o.setName("channel").setDescription("Channel where the message is").setRequired(true))
+      .addStringOption(o => o.setName("message_id").setDescription("Message ID to attach the reaction to").setRequired(true))
+      .addStringOption(o => o.setName("emoji").setDescription("Emoji to react with").setRequired(true))
+      .addRoleOption(o => o.setName("role").setDescription("Role to assign on reaction").setRequired(true))
+      .addStringOption(o => o.setName("mode").setDescription("Mode (default: toggle)").addChoices(
+        { name: "Toggle (add on react, remove on un-react)", value: "toggle" },
+        { name: "Add only (react = add role, never remove)", value: "add" },
+        { name: "Remove only (react = remove role)", value: "remove" },
       )))
-    .addSubcommand(s => s.setName("list").setDescription("List all reaction roles")),
+    .addSubcommand(s => s.setName("list").setDescription("List all reaction roles in this server")),
 
   // ── VERIFICATION ──────────────────────────────────────────────────────────
   new SlashCommandBuilder().setName("verification").setDescription("Verification system")
@@ -990,16 +991,48 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         if (!requireAdmin(interaction)) { await interaction.reply({ content: "❌ Administrator only.", ephemeral: true }); return; }
         const sub = interaction.options.getSubcommand();
         if (sub === "add") {
+          const rrChannel = interaction.options.getChannel("channel", true);
           const msgId = interaction.options.getString("message_id", true);
           const emoji = interaction.options.getString("emoji", true);
           const role = interaction.options.getRole("role", true);
           const mode = interaction.options.getString("mode") ?? "toggle";
-          await addReactionRole(interaction.guild.id, interaction.channelId, msgId, emoji, role.id, mode);
-          await interaction.reply({ embeds: [successEmbed(`Reaction role added: ${emoji} → <@&${role.id}>`)] });
+
+          await interaction.deferReply({ ephemeral: true });
+
+          const textChannel = interaction.guild.channels.cache.get(rrChannel.id) as TextChannel | null;
+          if (!textChannel || !("messages" in textChannel)) {
+            await interaction.editReply({ embeds: [errorEmbed("That must be a text channel.")] }); break;
+          }
+
+          const msg = await textChannel.messages.fetch(msgId).catch(() => null);
+          if (!msg) {
+            await interaction.editReply({ embeds: [errorEmbed(`Message \`${msgId}\` not found in <#${rrChannel.id}>.\nMake sure the message ID is correct.`)] }); break;
+          }
+
+          await addReactionRole(interaction.guild.id, rrChannel.id, msgId, emoji, role.id, mode);
+
+          // React to the message so members see the clickable emoji
+          try { await msg.react(emoji); } catch { /* invalid emoji or missing perms — not fatal */ }
+
+          await interaction.editReply({
+            embeds: [new EmbedBuilder()
+              .setColor(0x000000)
+              .setTitle("✅  Reaction Role Added")
+              .addFields(
+                { name: "Emoji",   value: emoji,              inline: true },
+                { name: "Role",    value: `<@&${role.id}>`,   inline: true },
+                { name: "Mode",    value: mode,               inline: true },
+                { name: "Channel", value: `<#${rrChannel.id}>`, inline: true },
+                { name: "Message", value: `[Jump to message](${msg.url})`, inline: true },
+              )
+              .setDescription("The bot has reacted to the message. Members can now click the reaction to get the role.")
+              .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
+              .setTimestamp()],
+          });
         } else if (sub === "list") {
           const rrs = await getAllReactionRoles(interaction.guild.id);
           await interaction.reply({
-            embeds: [infoEmbed("🎭  Reaction Roles", rrs.length ? rrs.map(r => `> ${r.emoji}  →  <@&${r.roleId}>  ·  \`${r.messageId}\``).join("\n") : "> *No reaction roles set.*")],
+            embeds: [infoEmbed("🎭  Reaction Roles", rrs.length ? rrs.map(r => `> ${r.emoji}  →  <@&${r.roleId}>  ·  \`${r.mode}\`  ·  \`${r.messageId}\``).join("\n") : "> *No reaction roles set.*")],
           });
         }
         break;
@@ -1039,8 +1072,23 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         await interaction.deferReply();
 
         if (sub === "snapshot") {
-          await captureSnapshot(interaction.guild);
-          await interaction.editReply({ embeds: [successEmbed("Snapshot taken of the current server state.", "📸  Snapshot Updated")] });
+          const snapshotId = await captureSnapshot(interaction.guild);
+          const ts = Math.floor(Date.now() / 1000);
+          await interaction.editReply({
+            embeds: [new EmbedBuilder()
+              .setColor(0x000000)
+              .setTitle("📸  Snapshot Saved")
+              .setDescription("Current server state has been captured and stored.")
+              .addFields(
+                { name: "🆔  Backup ID",    value: `\`\`\`${snapshotId}\`\`\``, inline: false },
+                { name: "📅  Captured",      value: `<t:${ts}:F>  ·  <t:${ts}:R>`, inline: false },
+                { name: "✅  Channels",      value: `\`${interaction.guild.channels.cache.size}\``, inline: true },
+                { name: "✅  Roles",         value: `\`${interaction.guild.roles.cache.size}\``, inline: true },
+                { name: "💡  Tip",           value: "Save this **Backup ID** — use `/recover channels`, `/recover roles`, or `/recover all` to restore from this snapshot.", inline: false },
+              )
+              .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
+              .setTimestamp()],
+          });
           break;
         }
 
@@ -1051,6 +1099,7 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         }
 
         const snapshot = settings.snapshotData as unknown as {
+          snapshotId?: string;
           channels: Array<{ id: string; name: string }>;
           roles: Array<{ id: string; name: string }>;
           capturedAt: number;
@@ -1081,17 +1130,21 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         }
 
         const snapshotAge = Math.floor((Date.now() - snapshot.capturedAt) / 60000);
-        const lines: string[] = [];
-        if (doChannels) lines.push(`**Channels restored:** \`${restoredChannels}\``);
-        if (doRoles) lines.push(`**Roles restored:** \`${restoredRoles}\``);
-        lines.push(`**Snapshot age:** \`${snapshotAge}m ago\``);
+        const ageStr = snapshotAge < 60
+          ? `${snapshotAge}m ago`
+          : `${Math.floor(snapshotAge / 60)}h ${snapshotAge % 60}m ago`;
 
         await interaction.editReply({
           embeds: [new EmbedBuilder()
             .setColor(restoredChannels + restoredRoles > 0 ? 0x57f287 : 0x5865f2)
-            .setTitle("Recovery Complete")
-            .setDescription(lines.join("\n"))
-            .setFooter({ text: "Shonargaon Antinuke  ·  Recovery", iconURL: BRAND.icon ?? undefined })
+            .setTitle("🔄  Recovery Complete")
+            .addFields(
+              ...(doChannels ? [{ name: "📁  Channels Restored", value: `\`${restoredChannels}\``, inline: true }] : []),
+              ...(doRoles    ? [{ name: "🎭  Roles Restored",    value: `\`${restoredRoles}\``,    inline: true }] : []),
+              { name: "🆔  Backup ID",   value: `\`${snapshot.snapshotId ?? "legacy"}\``, inline: true },
+              { name: "📅  Snapshot Age", value: ageStr, inline: true },
+            )
+            .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
             .setTimestamp()],
         });
         break;

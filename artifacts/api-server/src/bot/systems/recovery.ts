@@ -33,13 +33,19 @@ interface RoleSnapshot {
 }
 
 interface GuildSnapshot {
+  snapshotId: string;
   name: string;
   channels: ChannelSnapshot[];
   roles: RoleSnapshot[];
   capturedAt: number;
 }
 
-export async function captureSnapshot(guild: Guild): Promise<void> {
+function generateSnapshotId(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
+export async function captureSnapshot(guild: Guild): Promise<string> {
   try {
     const channels: ChannelSnapshot[] = guild.channels.cache
       .filter(ch => !THREAD_TYPES.has(ch.type))
@@ -76,7 +82,9 @@ export async function captureSnapshot(guild: Guild): Promise<void> {
         mentionable: r.mentionable,
       }));
 
+    const snapshotId = generateSnapshotId();
     const snapshot: GuildSnapshot = {
+      snapshotId,
       name: guild.name,
       channels,
       roles,
@@ -84,9 +92,11 @@ export async function captureSnapshot(guild: Guild): Promise<void> {
     };
 
     await updateGuildSettings(guild.id, { snapshotData: snapshot as unknown as Record<string, unknown> });
-    logger.info({ guildId: guild.id, channels: channels.length, roles: roles.length }, "Guild snapshot captured");
+    logger.info({ guildId: guild.id, channels: channels.length, roles: roles.length, snapshotId }, "Guild snapshot captured");
+    return snapshotId;
   } catch (err) {
     logger.error({ err, guildId: guild.id }, "Failed to capture guild snapshot");
+    return "UNKNOWN";
   }
 }
 
@@ -173,6 +183,6 @@ export async function recoverDeletedRole(guild: Guild, deletedRoleId: string): P
   }
 }
 
-export async function updateSnapshot(guild: Guild): Promise<void> {
-  await captureSnapshot(guild);
+export async function updateSnapshot(guild: Guild): Promise<string> {
+  return captureSnapshot(guild);
 }
