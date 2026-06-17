@@ -96,7 +96,9 @@ export async function onInteractionCreate(interaction: Interaction): Promise<voi
       }
       return;
     }
-  } catch (err) {
+  } catch (err: any) {
+    // 40060 = interaction already acknowledged by another bot instance (e.g. Railway running old code)
+    if (err?.code === 40060) return;
     logger.error({ err, type: interaction.type }, "interactionCreate error");
   }
 }
