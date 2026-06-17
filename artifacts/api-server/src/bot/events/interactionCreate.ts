@@ -28,6 +28,26 @@ export async function onInteractionCreate(interaction: Interaction): Promise<voi
         await handleTicketClaim(btn);
       } else if (id.startsWith("verify:")) {
         await handleVerifyButton(btn);
+      } else if (id === "dev:keren_os") {
+        await btn.reply({
+          embeds: [new (await import("discord.js")).EmbedBuilder()
+            .setColor(0x9B59B6 as any)
+            .setTitle("🌊  Keren OS — Intelligence System")
+            .setDescription("```\nroot@keren-os:~# cat /etc/keren.conf\n\n  SYSTEM     : Keren OS v1.0\n  TYPE       : Autonomous AI\n  ARCHITECT  : KAZI EREN\n  PURPOSE    : Bot management & server protection\n  STATUS     : ● ONLINE — All modules nominal\n\nroot@keren-os:~# █\n```")
+            .setFooter({ text: "Keren OS  ·  Autonomous Intelligence Layer" })
+            .setTimestamp()],
+          ephemeral: true,
+        });
+      } else if (id === "dev:support") {
+        await btn.reply({
+          embeds: [new (await import("discord.js")).EmbedBuilder()
+            .setColor(0x9B59B6 as any)
+            .setTitle("⭐  Shonargaon Antinuke — Support")
+            .setDescription("```\nroot@keren-os:~# ./support --query\n\n  BOT NAME   : Shonargaon Antinuke\n  DEV        : KAZI EREN\n  CONTACT    : Reach out via DM\n  STATUS     : ● Available for support\n\nroot@keren-os:~# █\n```")
+            .setFooter({ text: "Keren OS  ·  Support Terminal" })
+            .setTimestamp()],
+          ephemeral: true,
+        });
       } else if (id.startsWith("antinuke:toggle:")) {
         // antinuke:toggle:{module}:{guildId}
         const parts = id.split(":");

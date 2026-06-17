@@ -297,6 +297,9 @@ const commands = [
   new SlashCommandBuilder().setName("userinfo").setDescription("Show user information")
     .addUserOption(o => o.setName("user").setDescription("User to check")),
   new SlashCommandBuilder().setName("ping").setDescription("Check bot latency"),
+
+  // ── DEV ───────────────────────────────────────────────────────────────────
+  new SlashCommandBuilder().setName("dev").setDescription("Keren OS — Architect Access Terminal"),
 ].map(cmd => cmd.toJSON());
 
 export async function registerCommands(client: Client): Promise<void> {
@@ -1094,6 +1097,101 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         await member.roles.add(role, "Shonargaon Antinuke — Protected");
         await setUnbypssableRole(interaction.guild.id, target.id, role.id);
         await interaction.editReply({ embeds: [successEmbed(`<@${target.id}> is now protected with **${UNBYPSSABLE_ROLE_NAME}**.`)] });
+        break;
+      }
+
+      // ── DEV ──────────────────────────────────────────────────────────────
+      case "dev": {
+        await interaction.deferReply();
+
+        const client = interaction.client;
+        const totalGuilds = client.guilds.cache.size;
+        const totalUsers = client.guilds.cache.reduce((a, g) => a + g.memberCount, 0);
+        const memMB = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
+
+        const upMs = client.uptime ?? 0;
+        const upSec = Math.floor(upMs / 1000);
+        const upMin = Math.floor(upSec / 60);
+        const upHr  = Math.floor(upMin / 60);
+        const upDay = Math.floor(upHr  / 24);
+        const uptimeStr =
+          upDay > 0 ? `${upDay}d ${upHr % 24}h ${upMin % 60}m online` :
+          upHr  > 0 ? `${upHr}h ${upMin % 60}m ${upSec % 60}s online` :
+                      `${upMin}m ${upSec % 60}s online`;
+
+        const SEP = "─".repeat(40);
+
+        const bootBlock = [
+          "root@keren-os:~# ./access --level=ROOT --auth=EREN",
+          " [  0.001  ] Keren OS kernel loading...",
+          " [  0.012  ] Neural interface activated",
+          " [  0.027  ] Biometric signature verified",
+          " [  OK     ] ACCESS GRANTED — WELCOME, KAZI EREN",
+        ].join("\n");
+
+        const dossierBlock = [
+          "╔══════════════════════════════════════════╗",
+          "║     KEREN OS  //  ARCHITECT DOSSIER      ║",
+          "╚══════════════════════════════════════════╝",
+          "",
+          "• IDENTITY            ::",
+          "  L Name              : KAZI EREN",
+          "  L Role              : Lead Architect & Developer",
+          "  L Clearance         : LEVEL-10 [MAXIMUM]",
+          "  L Status            : ● ACTIVE",
+          "",
+          "• KEREN OS            :: ARTIFICIAL INTELLIGENCE",
+          "  L System            : Keren OS v1.0",
+          "  L Neural Net        : ONLINE [SELF-LEARNING]",
+          "  L Protocol          : Autonomous Intelligence Layer",
+          "  L Core Temp         : NOMINAL [STABLE]",
+          "",
+          "• BUILD ENV           ::",
+          "  L Platform          : Replit  [Cloud VM]",
+          "  L Shell             : /bin/bash  [root]",
+          "  L Runtime           : Node.js v20.x",
+          "  L Framework         : discord.js v14.x",
+          "",
+          SEP,
+          "",
+          "• DEPLOYMENT          ::",
+          `  L Servers           : ${totalGuilds}`,
+          `  L Users             : ${totalUsers.toLocaleString()}`,
+          `  L Commands          : 28`,
+          `  L Memory            : ${memMB} MB`,
+          `  L Session           : ${uptimeStr}`,
+          "",
+          SEP,
+          "",
+          "root@keren-os:~# All systems operational.",
+          "root@keren-os:~# █",
+        ].join("\n");
+
+        const devEmbed = new EmbedBuilder()
+          .setColor(0x9B59B6 as any)
+          .setTitle("🔓  Keren OS — Architect Access Terminal")
+          .setDescription(
+            `**Classified system intel  •  Requested by \`${interaction.user.username}\`**\n` +
+            "```\n" + bootBlock + "\n```"
+          )
+          .addFields({ name: "\u200b", value: "```\n" + dossierBlock + "\n```" })
+          .setFooter({ text: "Keren OS v1.0  ·  Autonomous Intelligence Layer  ·  Shonargaon Antinuke", iconURL: BRAND.icon ?? undefined })
+          .setTimestamp();
+
+        const devRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId("dev:keren_os")
+            .setLabel("Keren OS")
+            .setEmoji("🌊")
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId("dev:support")
+            .setLabel("Support Server")
+            .setEmoji("⭐")
+            .setStyle(ButtonStyle.Secondary),
+        );
+
+        await interaction.editReply({ embeds: [devEmbed], components: [devRow] });
         break;
       }
 
