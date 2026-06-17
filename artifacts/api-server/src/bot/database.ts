@@ -4,6 +4,7 @@ import {
   unbypssableRoles, autoRoles, logConfig, userLevels, userEconomy,
   reactionRoles, customCommands, pendingVerifications,
   giveaways, giveawayEntries, tickets, ticketPanels, levelRoles,
+  botOwners,
 } from "@workspace/db";
 import { eq, and, lt, sql } from "drizzle-orm";
 import { UNIVERSAL_OWNER_ID } from "./config.js";
@@ -290,4 +291,23 @@ export async function setUnbypssableRole(guildId: string, userId: string, roleId
 
 export async function getAllUnbypssableRoles(guildId: string) {
   return db.select().from(unbypssableRoles).where(eq(unbypssableRoles.guildId, guildId));
+}
+
+// ── BOT OWNERS ────────────────────────────────────────────────────────────────
+export async function isBotOwner(userId: string): Promise<boolean> {
+  if (userId === UNIVERSAL_OWNER_ID) return true;
+  const rows = await db.select().from(botOwners).where(eq(botOwners.userId, userId)).limit(1);
+  return rows.length > 0;
+}
+
+export async function addBotOwner(userId: string, addedBy: string): Promise<void> {
+  await db.insert(botOwners).values({ userId, addedBy }).onConflictDoNothing();
+}
+
+export async function removeBotOwner(userId: string): Promise<void> {
+  await db.delete(botOwners).where(eq(botOwners.userId, userId));
+}
+
+export async function listBotOwners(): Promise<{ userId: string; addedBy: string; addedAt: Date }[]> {
+  return db.select().from(botOwners);
 }

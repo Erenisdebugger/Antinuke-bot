@@ -221,6 +221,12 @@ export const customCommands = pgTable("custom_commands", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [uniqueIndex("custom_cmd_unique").on(t.guildId, t.trigger)]);
 
+export const botOwners = pgTable("bot_owners", {
+  userId: text("user_id").primaryKey(),
+  addedBy: text("added_by").notNull(),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+});
+
 export const pendingVerifications = pgTable("pending_verifications", {
   id: serial("id").primaryKey(),
   guildId: text("guild_id").notNull(),

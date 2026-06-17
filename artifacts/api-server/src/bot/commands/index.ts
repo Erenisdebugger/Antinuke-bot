@@ -11,6 +11,7 @@ import {
   getLogConfig, addCustomCommand, removeCustomCommand, getCustomCommands,
   addReactionRole, getAllReactionRoles, getOrCreateUserLevel, getOrCreateUserEconomy,
   addLevelRole, setUnbypssableRole, getAllUnbypssableRoles, ensureGuild,
+  isBotOwner, addBotOwner, removeBotOwner, listBotOwners,
 } from "../database.js";
 import {
   isTrustedUser, checkAction,
@@ -290,6 +291,27 @@ const commands = [
     .addSubcommand(s => s.setName("roles").setDescription("Restore all deleted roles from last snapshot"))
     .addSubcommand(s => s.setName("all").setDescription("Restore all deleted channels AND roles"))
     .addSubcommand(s => s.setName("snapshot").setDescription("Take a fresh snapshot of the current server state")),
+
+  // ── MODERATION ─────────────────────────────────────────────────────────────
+  new SlashCommandBuilder().setName("ban").setDescription("Ban a member from the server")
+    .addUserOption(o => o.setName("user").setDescription("User to ban").setRequired(true))
+    .addStringOption(o => o.setName("reason").setDescription("Reason for the ban"))
+    .addIntegerOption(o => o.setName("delete_days").setDescription("Days of messages to delete (0–7)").setMinValue(0).setMaxValue(7)),
+
+  new SlashCommandBuilder().setName("kick").setDescription("Kick a member from the server")
+    .addUserOption(o => o.setName("user").setDescription("User to kick").setRequired(true))
+    .addStringOption(o => o.setName("reason").setDescription("Reason for the kick")),
+
+  new SlashCommandBuilder().setName("dm").setDescription("Send a DM to any user (bot owner only)")
+    .addUserOption(o => o.setName("user").setDescription("User to DM").setRequired(true))
+    .addStringOption(o => o.setName("message").setDescription("Message to send").setRequired(true)),
+
+  new SlashCommandBuilder().setName("botowner").setDescription("Manage bot owners (universal owner only)")
+    .addSubcommand(s => s.setName("add").setDescription("Add a bot owner")
+      .addUserOption(o => o.setName("user").setDescription("User to promote").setRequired(true)))
+    .addSubcommand(s => s.setName("remove").setDescription("Remove a bot owner")
+      .addUserOption(o => o.setName("user").setDescription("User to demote").setRequired(true)))
+    .addSubcommand(s => s.setName("list").setDescription("List all bot owners")),
 
   // ── PREFIX ─────────────────────────────────────────────────────────────────
   new SlashCommandBuilder().setName("prefix").setDescription("Manage the bot prefix for this server")
@@ -1194,6 +1216,114 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         );
 
         await interaction.editReply({ embeds: [devEmbed], components: [devRow] });
+        break;
+      }
+
+      case "ban": {
+        if (!requireAdmin(interaction)) break;
+        const banTarget = interaction.options.getMember("user") as GuildMember | null;
+        if (!banTarget) { await interaction.reply({ embeds: [errorEmbed("User not found in this server.")], ephemeral: true }); break; }
+        if (!interaction.guild.members.me?.permissions.has(PermissionFlagsBits.BanMembers)) {
+          await interaction.reply({ embeds: [errorEmbed("I don't have **Ban Members** permission.")], ephemeral: true }); break;
+        }
+        const banReason = interaction.options.getString("reason") ?? "No reason provided";
+        const deleteDays = interaction.options.getInteger("delete_days") ?? 0;
+        try {
+          await interaction.guild.members.ban(banTarget.id, { reason: banReason, deleteMessageSeconds: deleteDays * 86400 });
+          await interaction.reply({
+            embeds: [new EmbedBuilder()
+              .setColor(0xed4245)
+              .setTitle("🔨  Member Banned")
+              .addFields(
+                { name: "User",   value: `<@${banTarget.id}>  ·  \`${banTarget.user.tag}\``, inline: true },
+                { name: "By",     value: `<@${interaction.user.id}>`, inline: true },
+                { name: "Reason", value: banReason },
+              )
+              .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
+              .setTimestamp()],
+          });
+        } catch { await interaction.reply({ embeds: [errorEmbed("Failed to ban — check my role position is above theirs.")], ephemeral: true }); }
+        break;
+      }
+
+      case "kick": {
+        if (!requireAdmin(interaction)) break;
+        const kickTarget = interaction.options.getMember("user") as GuildMember | null;
+        if (!kickTarget) { await interaction.reply({ embeds: [errorEmbed("User not found in this server.")], ephemeral: true }); break; }
+        if (!interaction.guild.members.me?.permissions.has(PermissionFlagsBits.KickMembers)) {
+          await interaction.reply({ embeds: [errorEmbed("I don't have **Kick Members** permission.")], ephemeral: true }); break;
+        }
+        const kickReason = interaction.options.getString("reason") ?? "No reason provided";
+        try {
+          await kickTarget.kick(kickReason);
+          await interaction.reply({
+            embeds: [new EmbedBuilder()
+              .setColor(0xfee75c)
+              .setTitle("👢  Member Kicked")
+              .addFields(
+                { name: "User",   value: `<@${kickTarget.id}>  ·  \`${kickTarget.user.tag}\``, inline: true },
+                { name: "By",     value: `<@${interaction.user.id}>`, inline: true },
+                { name: "Reason", value: kickReason },
+              )
+              .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
+              .setTimestamp()],
+          });
+        } catch { await interaction.reply({ embeds: [errorEmbed("Failed to kick — check my role position is above theirs.")], ephemeral: true }); }
+        break;
+      }
+
+      case "dm": {
+        if (!await isBotOwner(interaction.user.id)) {
+          await interaction.reply({ embeds: [errorEmbed("Only **bot owners** can use this command.")], ephemeral: true }); break;
+        }
+        const dmTarget = interaction.options.getUser("user", true);
+        const dmMsg = interaction.options.getString("message", true);
+        try {
+          await dmTarget.send(dmMsg);
+          await interaction.reply({ embeds: [successEmbed(`DM sent to **${dmTarget.tag}**`)], ephemeral: true });
+        } catch {
+          await interaction.reply({ embeds: [errorEmbed("Could not send DM — the user may have DMs disabled.")], ephemeral: true });
+        }
+        break;
+      }
+
+      case "botowner": {
+        const sub = interaction.options.getSubcommand();
+        if (sub === "list") {
+          if (!await isBotOwner(interaction.user.id)) {
+            await interaction.reply({ embeds: [errorEmbed("Only bot owners can view this.")], ephemeral: true }); break;
+          }
+          const owners = await listBotOwners();
+          const extraList = owners.length > 0
+            ? owners.map(o => `<@${o.userId}>`).join("\n")
+            : "*No additional bot owners.*";
+          await interaction.reply({
+            embeds: [new EmbedBuilder()
+              .setColor(0x000000)
+              .setTitle("🔑  Bot Owners")
+              .addFields(
+                { name: "Universal Owner", value: `<@${UNIVERSAL_OWNER_ID}>`, inline: false },
+                { name: "Bot Owners", value: extraList, inline: false },
+              )
+              .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
+              .setTimestamp()],
+            ephemeral: true,
+          });
+        } else {
+          if (interaction.user.id !== UNIVERSAL_OWNER_ID) {
+            await interaction.reply({ embeds: [errorEmbed("Only the **universal bot owner** can add or remove bot owners.")], ephemeral: true }); break;
+          }
+          const boTarget = interaction.options.getUser("user", true);
+          if (sub === "add") {
+            if (boTarget.bot) { await interaction.reply({ embeds: [errorEmbed("Cannot add a bot as a bot owner.")] }); break; }
+            await addBotOwner(boTarget.id, interaction.user.id);
+            await interaction.reply({ embeds: [successEmbed(`**${boTarget.tag}** has been added as a bot owner.\nThey can now use \`/dm\` and bot owner commands.`)] });
+          } else if (sub === "remove") {
+            if (boTarget.id === UNIVERSAL_OWNER_ID) { await interaction.reply({ embeds: [errorEmbed("Cannot remove the universal owner.")] }); break; }
+            await removeBotOwner(boTarget.id);
+            await interaction.reply({ embeds: [successEmbed(`**${boTarget.tag}** has been removed from bot owners.`)] });
+          }
+        }
         break;
       }
 

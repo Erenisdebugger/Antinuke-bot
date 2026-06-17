@@ -430,6 +430,19 @@ export function buildHelpEmbed(client: Client): {
         inline: true,
       },
       {
+        name: "🔨  Moderation",
+        value: [
+          "`/ban @user [reason]`",
+          "`/kick @user [reason]`",
+          "`/dm @user <msg>` *(owner)*",
+          "`/botowner add/remove/list`",
+          "",
+          "💬 Also works with prefix:",
+          "`$ban`  `$kick`  `$dm`",
+        ].join("\n"),
+        inline: true,
+      },
+      {
         name: "🎉  Leveling & Giveaways",
         value: [
           "`/rank [@user]`",
