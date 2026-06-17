@@ -28,6 +28,26 @@ export async function onInteractionCreate(interaction: Interaction): Promise<voi
         await handleTicketClaim(btn);
       } else if (id.startsWith("verify:")) {
         await handleVerifyButton(btn);
+      } else if (id === "help:dev_terminal") {
+        await btn.reply({
+          embeds: [new (await import("discord.js")).EmbedBuilder()
+            .setColor(0x9B59B6 as any)
+            .setTitle("💻  Keren OS — Developer Terminal")
+            .setDescription("```\nroot@keren-os:~# whoami\n\n  NAME       : KAZI EREN\n  ROLE       : Lead Architect & Developer\n  AI SYSTEM  : Keren OS v1.0  [SELF-LEARNING]\n  CLEARANCE  : LEVEL-10 [MAXIMUM]\n  STATUS     : ● ACTIVE\n\nroot@keren-os:~# █\n```")
+            .setFooter({ text: "Keren OS  ·  /dev for full terminal" })
+            .setTimestamp()],
+          ephemeral: true,
+        });
+      } else if (id === "help:antinuke_info") {
+        await btn.reply({
+          embeds: [new (await import("discord.js")).EmbedBuilder()
+            .setColor(0x000000 as any)
+            .setTitle("🛡️  Antinuke — Quick Guide")
+            .setDescription("```\nroot@keren-os:~# ./antinuke --help\n\n  /antinuke enable       : Activate protection\n  /antinuke status       : View all modules\n  /antinuke panel        : Interactive toggle panel\n  /whitelist add @user   : Trust a user\n  /extraowner add @user  : Add an extra owner\n  /logging setup #ch     : Set log channel\n\nroot@keren-os:~# █\n```")
+            .setFooter({ text: "Keren OS  ·  Autonomous Protection Layer" })
+            .setTimestamp()],
+          ephemeral: true,
+        });
       } else if (id === "dev:keren_os") {
         await btn.reply({
           embeds: [new (await import("discord.js")).EmbedBuilder()

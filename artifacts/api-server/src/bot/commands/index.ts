@@ -28,7 +28,7 @@ import {
 } from "../systems/leveling.js";
 import {
   toggleEmbed, successEmbed, errorEmbed, infoEmbed, warningEmbed,
-  antinukeStatusEmbed, balanceEmbed, lockdownEmbed, BRAND,
+  antinukeStatusEmbed, balanceEmbed, lockdownEmbed, BRAND, buildHelpEmbed,
 } from "../embed.js";
 import { COLORS, ECONOMY_CURRENCY, UNBYPSSABLE_ROLE_NAME, xpForLevel, UNIVERSAL_OWNER_ID } from "../config.js";
 import { logger } from "../../lib/logger.js";
@@ -292,7 +292,7 @@ const commands = [
     .addSubcommand(s => s.setName("snapshot").setDescription("Take a fresh snapshot of the current server state")),
 
   // ── BOTINFO ───────────────────────────────────────────────────────────────
-  new SlashCommandBuilder().setName("botinfo").setDescription("Show bot information"),
+  new SlashCommandBuilder().setName("help").setDescription("Show all commands and bot information"),
   new SlashCommandBuilder().setName("serverinfo").setDescription("Show server information"),
   new SlashCommandBuilder().setName("userinfo").setDescription("Show user information")
     .addUserOption(o => o.setName("user").setDescription("User to check")),
@@ -364,23 +364,11 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         break;
       }
 
-      case "botinfo":
-        await interaction.reply({
-          embeds: [new EmbedBuilder()
-            .setColor(BRAND.color)
-            .setAuthor({ name: BRAND.name, iconURL: interaction.client.user!.displayAvatarURL() })
-            .setThumbnail(interaction.client.user!.displayAvatarURL())
-            .setDescription("Advanced Discord protection bot with antinuke, verification, leveling, economy, and more.\n\u200b")
-            .addFields(
-              { name: "🏠  Servers", value: `\`${interaction.client.guilds.cache.size}\``, inline: true },
-              { name: "👥  Users", value: `\`${interaction.client.users.cache.size}\``, inline: true },
-              { name: "📡  Ping", value: `\`${Math.round(interaction.client.ws.ping)}ms\``, inline: true },
-              { name: "🔖  Version", value: "`1.0.0`", inline: true },
-            )
-            .setFooter({ text: BRAND.name, iconURL: BRAND.icon ?? undefined })
-            .setTimestamp()],
-        });
+      case "help": {
+        const { embed, row } = buildHelpEmbed(interaction.client);
+        await interaction.reply({ embeds: [embed], components: [row] });
         break;
+      }
 
       case "serverinfo": {
         const g = interaction.guild;

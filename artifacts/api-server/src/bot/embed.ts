@@ -1,4 +1,4 @@
-import { EmbedBuilder, Client, ColorResolvable } from "discord.js";
+import { EmbedBuilder, Client, ColorResolvable, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 
 // ─── Brand ─────────────────────────────────────────────────────────────────
 export const BRAND = {
@@ -349,4 +349,95 @@ export function verifyEmbed(serverName: string, code: string): EmbedBuilder {
     )
     .setFooter(footer("Verification"))
     .setTimestamp();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HELP — Command centre (reusable in /help, mention, guildCreate)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export function buildHelpEmbed(client: Client): {
+  embed: EmbedBuilder;
+  row: ActionRowBuilder<ButtonBuilder>;
+} {
+  const totalGuilds = client.guilds.cache.size;
+  const totalUsers  = client.guilds.cache.reduce((a, g) => a + g.memberCount, 0);
+  const ping        = Math.round(client.ws.ping);
+  const upMs        = client.uptime ?? 0;
+  const upSec       = Math.floor(upMs / 1000);
+  const upMin       = Math.floor(upSec / 60);
+  const upHr        = Math.floor(upMin / 60);
+  const upDay       = Math.floor(upHr / 24);
+  const uptimeStr   =
+    upDay > 0 ? `${upDay}d ${upHr % 24}h ${upMin % 60}m` :
+    upHr  > 0 ? `${upHr}h ${upMin % 60}m ${upSec % 60}s` :
+                `${upMin}m ${upSec % 60}s`;
+
+  const statusBlock = [
+    "root@keren-os:~# ./botinfo --status",
+    "",
+    "  BOT        : Shonargaon Antinuke",
+    "  AI         : Keren OS v1.0  [SELF-LEARNING]",
+    "  DEV        : KAZI EREN",
+    `  SERVERS    : ${totalGuilds}`,
+    `  USERS      : ${totalUsers.toLocaleString()}`,
+    `  PING       : ${ping}ms`,
+    `  UPTIME     : ${uptimeStr}`,
+    "",
+    "root@keren-os:~# All systems nominal.",
+    "root@keren-os:~# █",
+  ].join("\n");
+
+  const embed = new EmbedBuilder()
+    .setColor(C.black as ColorResolvable)
+    .setAuthor({ name: "Shonargaon Antinuke — Command Center", iconURL: BRAND.icon ?? undefined })
+    .setThumbnail(BRAND.icon)
+    .setDescription(`\`\`\`\n${statusBlock}\n\`\`\``)
+    .addFields(
+      {
+        name: "🛡️  Protection",
+        value: "`/antinuke`  `/whitelist`\n`/extraowner`  `/lockdown`\n`/recover`",
+        inline: true,
+      },
+      {
+        name: "📋  Logging & Setup",
+        value: "`/logging setup`\n`/logging status`\n`/welcome`  `/goodbye`\n`/autorole`  `/ticket`",
+        inline: true,
+      },
+      {
+        name: "🏷️  Roles & Access",
+        value: "`/reactionrole`\n`/unbypssablerole`\n`/verification`\n`/antiraid`",
+        inline: true,
+      },
+      {
+        name: "🎉  Fun & XP",
+        value: "`/giveaway`  `/rank`\n`/leaderboard`\n`/economy daily`\n`/economy balance`",
+        inline: true,
+      },
+      {
+        name: "📝  Utility",
+        value: "`/tag`  `/userinfo`\n`/serverinfo`  `/ping`\n`/help`  `/dev`",
+        inline: true,
+      },
+      {
+        name: "💡  Tip",
+        value: "Type `/` in Discord to see all commands.\nMention me anytime to see this panel.",
+        inline: true,
+      },
+    )
+    .setFooter({ text: "Keren OS v1.0  ·  Autonomous Intelligence Layer  ·  Shonargaon Antinuke", iconURL: BRAND.icon ?? undefined })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId("help:dev_terminal")
+      .setLabel("Developer Terminal")
+      .setEmoji("💻")
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId("help:antinuke_info")
+      .setLabel("Antinuke Info")
+      .setEmoji("🛡️")
+      .setStyle(ButtonStyle.Secondary),
+  );
+
+  return { embed, row };
 }
