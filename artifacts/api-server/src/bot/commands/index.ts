@@ -291,6 +291,19 @@ const commands = [
     .addSubcommand(s => s.setName("all").setDescription("Restore all deleted channels AND roles"))
     .addSubcommand(s => s.setName("snapshot").setDescription("Take a fresh snapshot of the current server state")),
 
+  // ── PREFIX ─────────────────────────────────────────────────────────────────
+  new SlashCommandBuilder().setName("prefix").setDescription("Manage the bot prefix for this server")
+    .addSubcommand(s => s.setName("set").setDescription("Set a custom prefix")
+      .addStringOption(o => o.setName("prefix").setDescription("New prefix (e.g. $, !, .)").setRequired(true).setMaxLength(5)))
+    .addSubcommand(s => s.setName("reset").setDescription("Reset prefix back to $ (default)"))
+    .addSubcommand(s => s.setName("view").setDescription("See the current prefix")),
+
+  // ── LEVELING SETTINGS ──────────────────────────────────────────────────────
+  new SlashCommandBuilder().setName("leveling").setDescription("Leveling system settings")
+    .addSubcommand(s => s.setName("channel").setDescription("Set the channel for level-up notifications")
+      .addChannelOption(o => o.setName("channel").setDescription("Level-up notification channel").setRequired(true)))
+    .addSubcommand(s => s.setName("disable").setDescription("Disable level-up messages (they'll be sent in the chat where the user leveled up)")),
+
   // ── BOTINFO ───────────────────────────────────────────────────────────────
   new SlashCommandBuilder().setName("help").setDescription("Show all commands and bot information"),
   new SlashCommandBuilder().setName("serverinfo").setDescription("Show server information"),
@@ -1180,6 +1193,41 @@ export async function handleCommand(interaction: ChatInputCommandInteraction): P
         );
 
         await interaction.editReply({ embeds: [devEmbed], components: [devRow] });
+        break;
+      }
+
+      case "prefix": {
+        const sub = interaction.options.getSubcommand();
+        if (sub === "view") {
+          const s = await getGuildSettings(interaction.guild.id);
+          await interaction.reply({
+            embeds: [infoEmbed("Current Prefix", `The current prefix for this server is: \`${s.prefix ?? "$"}\`\n\nUse \`/prefix set <prefix>\` to change it.`)],
+            ephemeral: true,
+          });
+        } else if (sub === "set") {
+          if (!requireAdmin(interaction)) break;
+          const newPrefix = interaction.options.getString("prefix", true);
+          await updateGuildSettings(interaction.guild.id, { prefix: newPrefix });
+          await interaction.reply({ embeds: [successEmbed(`Prefix set to \`${newPrefix}\`\nCustom commands now trigger with \`${newPrefix}<tag>\``)] });
+        } else if (sub === "reset") {
+          if (!requireAdmin(interaction)) break;
+          await updateGuildSettings(interaction.guild.id, { prefix: "$" });
+          await interaction.reply({ embeds: [successEmbed("Prefix reset to `$` (default)")] });
+        }
+        break;
+      }
+
+      case "leveling": {
+        if (!requireAdmin(interaction)) break;
+        const sub = interaction.options.getSubcommand();
+        if (sub === "channel") {
+          const ch = interaction.options.getChannel("channel", true);
+          await updateGuildSettings(interaction.guild.id, { levelingChannelId: ch.id });
+          await interaction.reply({ embeds: [successEmbed(`Level-up messages will be sent to <#${ch.id}>`)] });
+        } else if (sub === "disable") {
+          await updateGuildSettings(interaction.guild.id, { levelingChannelId: null });
+          await interaction.reply({ embeds: [successEmbed("Level-up messages will now appear in the channel where the user leveled up.")] });
+        }
         break;
       }
 

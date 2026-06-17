@@ -1,7 +1,7 @@
 import { Message } from "discord.js";
 import { handleMessageXP } from "../systems/leveling.js";
 import { handleCustomCommand } from "../systems/customcmds.js";
-import { BOT_PREFIX } from "../config.js";
+import { getGuildSettings } from "../database.js";
 import { buildHelpEmbed } from "../embed.js";
 import { logger } from "../../lib/logger.js";
 
@@ -20,9 +20,12 @@ export async function onMessageCreate(message: Message): Promise<void> {
     // XP system
     await handleMessageXP(message);
 
-    // Custom commands / tags (prefix-based)
-    if (message.content.startsWith(BOT_PREFIX)) {
-      const trigger = message.content.slice(BOT_PREFIX.length).split(" ")[0]?.toLowerCase();
+    // Custom commands / tags (prefix-based — uses guild-specific prefix from DB)
+    const settings = await getGuildSettings(message.guild.id);
+    const prefix = settings.prefix || "$";
+
+    if (message.content.startsWith(prefix)) {
+      const trigger = message.content.slice(prefix.length).split(" ")[0]?.toLowerCase();
       if (trigger) {
         await handleCustomCommand(message, trigger);
       }

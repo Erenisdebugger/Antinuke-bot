@@ -393,33 +393,77 @@ export function buildHelpEmbed(client: Client): {
     .setDescription(`\`\`\`\n${statusBlock}\n\`\`\``)
     .addFields(
       {
-        name: "🛡️  Protection",
-        value: "`/antinuke`  `/whitelist`\n`/extraowner`  `/lockdown`\n`/recover`",
+        name: "🛡️  Protection & Antinuke",
+        value: [
+          "`/antinuke enable` `/antinuke disable`",
+          "`/antinuke status` `/antinuke panel`",
+          "`/antinuke toggle` `/antinuke config`",
+          "`/whitelist add/remove/list/check`",
+          "`/extraowner add/remove/list`",
+          "`/recover channels/roles/all`",
+          "`/protect @user`",
+        ].join("\n"),
         inline: true,
       },
       {
-        name: "📋  Logging & Setup",
-        value: "`/logging setup`\n`/logging status`\n`/welcome`  `/goodbye`\n`/autorole`  `/ticket`",
+        name: "🔒  AntiRaid & Logging",
+        value: [
+          "`/antiraid enable/disable`",
+          "`/antiraid lock` `/antiraid unlock`",
+          "`/logging setup #channel`",
+          "`/logging status` `/logging disable`",
+          "`/logging toggle <event>`",
+        ].join("\n"),
         inline: true,
       },
       {
-        name: "🏷️  Roles & Access",
-        value: "`/reactionrole`\n`/unbypssablerole`\n`/verification`\n`/antiraid`",
+        name: "⚙️  Server Setup",
+        value: [
+          "`/welcome enable/disable/test`",
+          "`/welcome goodbye`",
+          "`/autorole add/remove/list`",
+          "`/ticket setup`",
+          "`/verification enable/disable`",
+          "`/reactionrole add/list`",
+          "`/levelrole` `/protect`",
+        ].join("\n"),
         inline: true,
       },
       {
-        name: "🎉  Fun & XP",
-        value: "`/giveaway`  `/rank`\n`/leaderboard`\n`/economy daily`\n`/economy balance`",
+        name: "🎉  Leveling & Giveaways",
+        value: [
+          "`/rank [@user]`",
+          "`/leaderboard levels/economy`",
+          "`/leveling channel #ch`",
+          "`/leveling disable`",
+          "`/giveaway start`",
+          "`/giveaway reroll <id>`",
+        ].join("\n"),
         inline: true,
       },
       {
-        name: "📝  Utility",
-        value: "`/tag`  `/userinfo`\n`/serverinfo`  `/ping`\n`/help`  `/dev`",
+        name: "💰  Economy",
+        value: [
+          "`/balance [@user]`",
+          "`/daily` `/work`",
+          "`/pay @user <amount>`",
+          "`/deposit <amount/all>`",
+          "`/withdraw <amount/all>`",
+        ].join("\n"),
         inline: true,
       },
       {
-        name: "💡  Tip",
-        value: "Type `/` in Discord to see all commands.\nMention me anytime to see this panel.",
+        name: "📝  Tags & Utility",
+        value: [
+          "`/tag create/delete/list`",
+          "`/prefix set/reset/view`",
+          "`/userinfo [@user]`",
+          "`/serverinfo` `/ping`",
+          "`/help` `/dev`",
+          "",
+          "💡 Prefix commands: `$<tag>`",
+          "📌 Mention me for this panel",
+        ].join("\n"),
         inline: true,
       },
     )
@@ -437,6 +481,16 @@ export function buildHelpEmbed(client: Client): {
       .setLabel("Antinuke Info")
       .setEmoji("🛡️")
       .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setURL("https://discord.gg/HXKmJgq9T")
+      .setLabel("Support Server")
+      .setEmoji("🤝")
+      .setStyle(ButtonStyle.Link),
+    new ButtonBuilder()
+      .setURL("https://discord.com/oauth2/authorize?client_id=1505482782090989658")
+      .setLabel("Invite Bot")
+      .setEmoji("➕")
+      .setStyle(ButtonStyle.Link),
   );
 
   return { embed, row };

@@ -38,8 +38,8 @@ export async function handleMessageXP(message: Message): Promise<void> {
 
   if (leveledUp) {
     const settings = await getGuildSettings(message.guild.id);
-    const levelUpChannel = settings.logChannelId
-      ? message.guild.channels.cache.get(settings.logChannelId) as TextChannel | undefined
+    const levelUpChannel = settings.levelingChannelId
+      ? message.guild.channels.cache.get(settings.levelingChannelId) as TextChannel | undefined
       : message.channel as TextChannel;
 
     const targetChannel = levelUpChannel ?? (message.channel as TextChannel);

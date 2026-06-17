@@ -16,6 +16,8 @@ export const guildSettings = pgTable("guild_settings", {
   goodbyeChannelId: text("goodbye_channel_id"),
   goodbyeMessage: text("goodbye_message"),
   logChannelId: text("log_channel_id"),
+  levelingChannelId: text("leveling_channel_id"),
+  prefix: text("prefix").default("$").notNull(),
   antiRaidEnabled: boolean("anti_raid_enabled").default(false).notNull(),
   antiRaidLocked: boolean("anti_raid_locked").default(false).notNull(),
   snapshotData: jsonb("snapshot_data"),

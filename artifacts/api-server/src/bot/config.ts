@@ -1,5 +1,5 @@
 export const UNIVERSAL_OWNER_ID = "806854021431427102";
-export const BOT_PREFIX = "!";
+export const BOT_PREFIX = "$";
 export const UNBYPSSABLE_ROLE_NAME = "⚡ Protected";
 
 export const XP_PER_MESSAGE = { min: 15, max: 25 };
